@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RHMSS Water-Stage Dashboard</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #718096;
+    --accent: #3182ce;
+    --accent-hover: #2b6cb0;
+    --danger: #e53e3e;
+    --warn-bg: #fefcbf;
+    --warn-border: #ecc94b;
+    --success: #38a169;
+    --alert1: #ed8936;
+    --alert2: #e53e3e;
+    --rising: #e53e3e;
+    --falling: #38a169;
+    --steady: #718096;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+
+  .controls { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+
+  #status { font-size: .85rem; color: var(--muted); }
+
+  button {
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    padding: .5rem 1.25rem;
+    border-radius: 6px;
+    font-size: .875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: .35rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  main { padding: 1rem 1.5rem; }
+
+  .error-box {
+    background: #fff5f5;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: .75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: .875rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+
+  th, td { padding: .55rem .75rem; text-align: left; white-space: nowrap; }
+
+  thead th {
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    cursor: default;
+    user-select: none;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #edf2f7; }
+
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .tendency-rising  { color: var(--rising);  font-weight: 600; }
+  .tendency-falling { color: var(--falling); font-weight: 600; }
+  .tendency-steady  { color: var(--steady); }
+
+  .alert-active-1 { background: #fffaf0; }
+  .alert-active-2 { background: #fff5f5; }
+
+  .badge {
+    display: inline-block;
+    padding: .1rem .45rem;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .badge-alert1 { background: #feebc8; color: #9c4221; }
+  .badge-alert2 { background: #fed7d7; color: #9b2c2c; }
+
+  a.ext { color: var(--accent); text-decoration: none; }
+  a.ext:hover { text-decoration: underline; }
+
+  .station-cell { white-space: normal; min-width: 220px; }
+  .station-header { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
+  .stage-inline {
+    font-weight: 700;
+    font-size: .92em;
+    font-variant-numeric: tabular-nums;
+  }
+  .pct-label {
+    font-size: .75rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .pct-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+  .pct-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width .3s;
+  }
+  .pct-safe  { background: var(--accent); }
+  .pct-warn  { background: var(--alert1); }
+  .pct-danger { background: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  .search-box {
+    padding: .4rem .7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: .85rem;
+    width: 220px;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RHMSS Water-Stage Dashboard</h1>
+  <div class="controls">
+    <input type="text" id="search" class="search-box" placeholder="Filter stations or rivers…" />
+    <span id="status"></span>
+    <button id="refreshBtn" onclick="refresh()">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="error"></div>
+  <div id="content" class="empty-state">Click <strong>Refresh</strong> to load station data.</div>
+</main>
+
+<script>
+const refreshBtn = document.getElementById('refreshBtn');
+const statusEl   = document.getElementById('status');
+const errorEl    = document.getElementById('error');
+const contentEl  = document.getElementById('content');
+const searchEl   = document.getElementById('search');
+
+let stationData = [];
+
+searchEl.addEventListener('input', renderTable);
+
+async function refresh() {
+  refreshBtn.disabled = true;
+  errorEl.innerHTML = '';
+  statusEl.innerHTML = '<span class="spinner"></span>Fetching ~146 stations…';
+
+  try {
+    const res = await fetch('/api/stations');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    stationData = json.stations;
+    statusEl.textContent = `${json.count} stations loaded in ${json.elapsed_seconds}s`;
+    renderTable();
+  } catch (err) {
+    errorEl.innerHTML = `<div class="error-box">Failed to fetch data: ${esc(err.message)}</div>`;
+    statusEl.textContent = '';
+  } finally {
+    refreshBtn.disabled = false;
+  }
+}
+
+function renderTable() {
+  if (!stationData.length) {
+    contentEl.innerHTML = '<div class="empty-state">No data loaded yet.</div>';
+    return;
+  }
+
+  const q = searchEl.value.trim().toLowerCase();
+  const filtered = q
+    ? stationData.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.river.toLowerCase().includes(q) ||
+        s.hm_id.includes(q))
+    : stationData;
+
+  if (!filtered.length) {
+    contentEl.innerHTML = '<div class="empty-state">No stations match your filter.</div>';
+    return;
+  }
+
+  const rows = filtered.map((s, i) => {
+    const stage = fmt(s.water_stage_cm);
+    const change = fmtChange(s.change_cm);
+    const flow = fmt(s.river_flow);
+    const temp = fmt(s.water_temp);
+    const alert1 = fmt(s.first_flood_alert_cm);
+    const alert2 = fmt(s.second_flood_alert_cm);
+    const tendCls = s.tendency ? `tendency-${s.tendency}` : '';
+    const tendLabel = s.tendency ? s.tendency.charAt(0).toUpperCase() + s.tendency.slice(1) : '–';
+
+    let rowCls = '';
+    let alertBadge = '';
+    if (s.water_stage_cm != null && s.second_flood_alert_cm != null && s.water_stage_cm >= s.second_flood_alert_cm) {
+      rowCls = 'alert-active-2';
+      alertBadge = ' <span class="badge badge-alert2">2nd ALERT</span>';
+    } else if (s.water_stage_cm != null && s.first_flood_alert_cm != null && s.water_stage_cm >= s.first_flood_alert_cm) {
+      rowCls = 'alert-active-1';
+      alertBadge = ' <span class="badge badge-alert1">1st ALERT</span>';
+    }
+
+    // Percentage toward first flood alert (shown next to station name)
+    let pctHtml = '';
+    let barHtml = '';
+    if (s.water_stage_cm != null && s.first_flood_alert_cm != null && s.first_flood_alert_cm > 0) {
+      const pct = Math.round((s.water_stage_cm / s.first_flood_alert_cm) * 100);
+      const barW = Math.min(pct, 100);
+      const barCls = pct >= 100 ? 'pct-danger' : pct >= 75 ? 'pct-warn' : 'pct-safe';
+      pctHtml = `<span class="pct-label">(${pct}% of 1st alert)</span>`;
+      barHtml = `<div class="pct-bar-wrap"><div class="pct-bar ${barCls}" style="width:${barW}%"></div></div>`;
+    }
+
+    const stageInline = s.water_stage_cm != null
+      ? `<span class="stage-inline">${s.water_stage_cm} cm</span>`
+      : '<span class="stage-inline" style="color:var(--muted)">–</span>';
+
+    const errCell = s.error ? `<span title="${esc(s.error)}" style="color:var(--danger)">⚠</span>` : '';
+
+    return `<tr class="${rowCls}">
+      <td class="num">${i + 1}</td>
+      <td class="station-cell">
+        <div class="station-header">
+          <a class="ext" href="${esc(s.detail_url)}" target="_blank" rel="noopener">${esc(s.name)}</a>
+          ${stageInline} ${pctHtml} ${alertBadge}
+        </div>
+        ${barHtml}
+      </td>
+      <td>${esc(s.river)}</td>
+      <td class="num ${tendCls}">${change}</td>
+      <td class="num">${flow}</td>
+      <td class="num">${temp}</td>
+      <td class="num ${tendCls}">${tendLabel}</td>
+      <td class="num">${alert1}</td>
+      <td class="num">${alert2}</td>
+      <td>${errCell}</td>
+    </tr>`;
+  }).join('');
+
+  contentEl.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th class="num">#</th>
+      <th>Station / Stage</th>
+      <th>River</th>
+      <th class="num">Change (cm)</th>
+      <th class="num">Flow (m³/s)</th>
+      <th class="num">Temp (°C)</th>
+      <th>Tendency</th>
+      <th class="num">1st Alert (cm)</th>
+      <th class="num">2nd Alert (cm)</th>
+      <th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function fmt(v) { return v != null ? v : '–'; }
+function fmtChange(v) {
+  if (v == null) return '–';
+  return (v > 0 ? '+' : '') + v;
+}
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
