@@ -19,3 +19,7 @@ Then open <http://127.0.0.1:8000> and click **Refresh** to load station data.
   they change their HTML structure.
 - A full refresh fetches ~146 station pages with bounded concurrency and
   typically takes 30-60 seconds.
+
+---
+
+Po naročilu za Miha Štendler.
