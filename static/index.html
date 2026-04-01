@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>RHMSS Water-Stage Dashboard</title>
+<title>Hydro Dashboard — RHMSS &amp; INHGA Danube</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -22,6 +24,9 @@
     --rising: #e53e3e;
     --falling: #38a169;
     --steady: #718096;
+    --danube: #2563eb;
+    --danube-bg: #eff6ff;
+    --danube-border: #bfdbfe;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,6 +127,7 @@
 
   .alert-active-1 { background: #fffaf0; }
   .alert-active-2 { background: #fff5f5; }
+  .alert-active-3 { background: #fee2e2; }
 
   .badge {
     display: inline-block;
@@ -133,6 +139,9 @@
   }
   .badge-alert1 { background: #feebc8; color: #9c4221; }
   .badge-alert2 { background: #fed7d7; color: #9b2c2c; }
+  .badge-attention { background: #fef3c7; color: #92400e; }
+  .badge-flood     { background: #fed7d7; color: #9b2c2c; }
+  .badge-danger    { background: #fecaca; color: #991b1b; }
 
   a.ext { color: var(--accent); text-decoration: none; }
   a.ext:hover { text-decoration: underline; }
@@ -180,12 +189,172 @@
     width: 220px;
   }
   .search-box:focus { outline: none; border-color: var(--accent); }
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .section-title:first-child { margin-top: 0; }
+  .section-title .src-badge {
+    font-size: .7rem;
+    font-weight: 500;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+  .src-inhga { background: var(--danube-bg); color: var(--danube); border: 1px solid var(--danube-border); }
+  .src-rhmss { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+  .bulletin-strip {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--danube-bg);
+    border: 1px solid var(--danube-border);
+    border-radius: 8px 8px 0 0;
+    padding: .6rem 1rem;
+    font-size: .82rem;
+    border-bottom: none;
+  }
+  .bulletin-strip .bs-item {
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+  }
+  .bulletin-strip .bs-label {
+    color: var(--muted);
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+  }
+  .bulletin-strip .bs-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .bulletin-strip a { color: var(--danube); }
+
+  .danube-error {
+    color: var(--danger);
+    font-size: .85rem;
+    padding: .5rem 0;
+  }
+
+  .forecast-img-wrap {
+    text-align: center;
+    margin: .5rem 0;
+  }
+  .forecast-img-wrap img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .forecast-table-wrap {
+    overflow-x: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .forecast-table-wrap table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .forecast-table-wrap th,
+  .forecast-table-wrap td { padding: .45rem .6rem; text-align: center; white-space: nowrap; }
+  .forecast-table-wrap th { background: var(--bg); font-weight: 600; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
+  .forecast-table-wrap td:first-child,
+  .forecast-table-wrap td:nth-child(2) { text-align: left; font-weight: 500; }
+  .forecast-table-wrap tbody tr { border-bottom: 1px solid var(--border); }
+  .forecast-table-wrap tbody tr:last-child { border-bottom: none; }
+  .forecast-table-wrap tbody tr:hover { background: #edf2f7; }
+  .forecast-table-wrap .val-alert1 { background: #feebc8; color: #9c4221; font-weight: 700; }
+  .forecast-table-wrap .val-alert2 { background: #fed7d7; color: #9b2c2c; font-weight: 700; }
+
+  #hydro-map { height: 520px; border-radius: 8px; border: 1px solid var(--border); }
+  .map-legend {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .5rem .75rem;
+    font-size: .78rem;
+    line-height: 1.7;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  }
+  .map-legend i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: .35rem;
+    vertical-align: -1px;
+  }
+  .plant-popup { font-size: .82rem; line-height: 1.5; min-width: 180px; }
+  .plant-popup h4 { margin: 0 0 .3rem; font-size: .9rem; }
+  .plant-popup .pp-cap { font-weight: 700; color: var(--accent); }
+  .plant-popup .pp-river { color: var(--muted); font-size: .75rem; }
+  .station-popup { font-size: .82rem; line-height: 1.5; min-width: 200px; }
+  .station-popup h4 { margin: 0 0 .2rem; font-size: .85rem; }
+  .station-popup .sp-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .river-tooltip { font-size: .78rem; font-weight: 600; font-style: italic; padding: 2px 6px; }
+  .river-popup { font-size: .82rem; line-height: 1.5; min-width: 160px; }
+  .river-popup b { font-size: .9rem; }
+  .river-popup table { border-collapse: collapse; }
+  .river-popup td { padding: .15rem .4rem .15rem 0; font-variant-numeric: tabular-nums; }
+
+  .plant-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+  .pg-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .pg-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .pg-card.pg-rising::before   { background: linear-gradient(90deg, #f59e0b, #dc2626); }
+  .pg-card.pg-falling::before  { background: linear-gradient(90deg, #059669, #34d399); }
+  .pg-card.pg-steady::before   { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+  .pg-card.pg-none::before     { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+  .pg-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .5rem; }
+  .pg-title { font-weight: 700; font-size: .95rem; }
+  .pg-mw { font-size: .75rem; font-weight: 600; color: var(--accent); background: #ebf5ff; padding: .15rem .5rem; border-radius: 4px; }
+  .pg-plants { font-size: .72rem; color: var(--muted); margin-bottom: .6rem; }
+  .pg-stations { display: flex; flex-wrap: wrap; gap: .3rem .6rem; margin-bottom: .5rem; }
+  .pg-station {
+    font-size: .78rem;
+    display: flex; align-items: center; gap: .25rem;
+    padding: .15rem .4rem;
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .pg-station .pg-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pg-station .pg-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pg-station .pg-chg { font-size: .7rem; }
+  .pg-spark-area { margin-top: .4rem; }
+  .pg-trend-label { font-size: .75rem; font-weight: 600; margin-bottom: .15rem; }
+  .pg-summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem; font-size: .78rem; }
+  .pg-summary .pg-metric { display: flex; flex-direction: column; }
+  .pg-summary .pg-metric-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .pg-summary .pg-metric-val { font-weight: 700; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>RHMSS Water-Stage Dashboard</h1>
+  <h1>Hydro Dashboard</h1>
   <div class="controls">
     <input type="text" id="search" class="search-box" placeholder="Filter stations or rivers…" />
     <span id="status"></span>
@@ -195,6 +364,43 @@
 
 <main>
   <div id="error"></div>
+
+  <div class="section-title">
+    Hydropower Plants & Monitoring Stations <span class="src-badge src-rhmss">Interactive Map</span>
+  </div>
+  <div id="hydro-map"></div>
+
+  <div class="section-title" style="margin-top:2rem;">
+    Hydro Production Outlook — Station Trends by Plant Group
+    <span id="pg-status" style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:auto"></span>
+  </div>
+  <div id="plant-groups" class="plant-groups">
+    <div class="empty-state" style="grid-column:1/-1;padding:1.5rem">Click <strong>Refresh</strong> to see aggregated trends by power plant group.</div>
+  </div>
+
+  <div class="section-title" style="margin-top:2rem;">
+    Danube — Romania (INHGA) <span class="src-badge src-inhga">hidro.ro</span>
+    <span id="danube-status" style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:auto"></span>
+  </div>
+  <div id="danube-content" class="empty-state" style="padding:1.5rem 1rem">
+    Click <strong>Refresh</strong> to load Danube data from INHGA.
+  </div>
+
+  <div class="section-title" style="margin-top:2rem;">
+    Danube Forecast — Romania (INHGA via AFDJ) <span class="src-badge src-inhga">afdj.ro</span>
+    <span id="inhga-fc-status" style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:auto"></span>
+  </div>
+  <div id="inhga-forecast" class="empty-state" style="padding:1rem">Loads with Refresh.</div>
+
+  <div class="section-title" style="margin-top:2rem;">
+    Water Level Forecast — Serbia (RHMSS) <span class="src-badge src-rhmss">hidmet.gov.rs</span>
+    <span id="forecast-status" style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:auto"></span>
+  </div>
+  <div id="forecast-content" class="empty-state" style="padding:1rem">Loads with Refresh.</div>
+
+  <div class="section-title" style="margin-top:2rem;">
+    All Serbian Stations (RHMSS) <span class="src-badge src-rhmss">hidmet.gov.rs</span>
+  </div>
   <div id="content" class="empty-state">Click <strong>Refresh</strong> to load station data.</div>
 </main>
 
@@ -204,29 +410,932 @@ const statusEl   = document.getElementById('status');
 const errorEl    = document.getElementById('error');
 const contentEl  = document.getElementById('content');
 const searchEl   = document.getElementById('search');
+const danubeEl   = document.getElementById('danube-content');
+const danubeSt   = document.getElementById('danube-status');
+const fcEl       = document.getElementById('forecast-content');
+const fcSt       = document.getElementById('forecast-status');
+const inhgaFcEl  = document.getElementById('inhga-forecast');
+const inhgaFcSt  = document.getElementById('inhga-fc-status');
 
 let stationData = [];
+let danubeData = null;
+let rhmssForecasts = {};
+let inhgaForecasts = {};
 
-searchEl.addEventListener('input', renderTable);
+searchEl.addEventListener('input', () => { renderTable(); renderDanubeTable(); });
+
+// ── Hydropower Map ──────────────────────────────────────────────────
+const PLANTS = [
+  { name: 'Đerdap I',         lat: 44.670, lng: 22.529, mw: 1080, river: 'Danube',         type: 'conventional', branch: 'Đerdap' },
+  { name: 'Đerdap II',        lat: 44.306, lng: 22.566, mw:  270, river: 'Danube',         type: 'conventional', branch: 'Đerdap' },
+  { name: 'Bajina Bašta',     lat: 43.963, lng: 19.409, mw:  420, river: 'Drina',          type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'RHE Bajina Bašta', lat: 43.955, lng: 19.425, mw:  614, river: 'Drina',          type: 'pumped',       branch: 'Drinsko-Limske' },
+  { name: 'Zvornik',          lat: 44.368, lng: 19.107, mw:  126, river: 'Drina',          type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'Potpeć',           lat: 43.522, lng: 19.576, mw:   51, river: 'Lim',            type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'Bistrica',         lat: 43.519, lng: 19.593, mw:  102, river: 'Lim',            type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'Kokin Brod',       lat: 43.517, lng: 19.811, mw:   22, river: 'Uvac',           type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'Uvac',             lat: 43.419, lng: 19.931, mw:   36, river: 'Uvac',           type: 'conventional', branch: 'Drinsko-Limske' },
+  { name: 'Vlasina',          lat: 42.708, lng: 22.070, mw:  129, river: 'Vlasina',        type: 'conventional', branch: 'Đerdap' },
+  { name: 'Pirot',            lat: 43.155, lng: 22.610, mw:   80, river: 'Nišava/Visočica',type: 'conventional', branch: 'Đerdap' },
+  { name: 'Međuvršje',        lat: 43.909, lng: 20.232, mw:    9, river: 'Zapadna Morava', type: 'conventional', branch: 'Đerdap' },
+  { name: 'Ovčar Banja',      lat: 43.899, lng: 20.180, mw:    8, river: 'Zapadna Morava', type: 'conventional', branch: 'Đerdap' },
+];
+
+const stationCoords = {};
+
+const PLANT_STATIONS = {
+  'Đerdap I':         ['Bazias', 'Moldova Veche', 'Drencova', 'Orsova', 'Dr.Tr.Severin', 'GOLUBAC', 'VELIKO GRADIŠTE'],
+  'Đerdap II':        ['Gruia', 'Dr.Tr.Severin', 'BANATSKA PALANKA'],
+  'Bajina Bašta':     ['BAJINA BAŠTA', 'RADALJ'],
+  'RHE Bajina Bašta': ['BAJINA BAŠTA', 'RADALJ'],
+  'Zvornik':          ['RADALJ', 'BADOVINCI'],
+  'Potpeć':           ['BRODAREVO', 'PRIJEPOLJE', 'PRIBOJ'],
+  'Bistrica':         ['PRIBOJ', 'BRODAREVO'],
+  'Kokin Brod':       ['PRIBOJ'],
+  'Uvac':             ['PRIBOJ'],
+  'Vlasina':          ['SVOĐE', 'VLASOTINCE'],
+  'Pirot':            ['PIROT', 'DIMITROVGRAD', 'BELA PALANKA', 'IZATOVAC'],
+  'Međuvršje':        ['KRATOVSKA STENA', 'ČAČAK'],
+  'Ovčar Banja':      ['KRATOVSKA STENA', 'ČAČAK'],
+};
+
+function plantIcon(mw) {
+  const r = mw >= 500 ? 14 : mw >= 100 ? 11 : 8;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${r*2}px;height:${r*2}px;background:#1d4ed8;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:${r-2}px;font-weight:700">⚡</div>`,
+    iconSize: [r*2, r*2],
+    iconAnchor: [r, r],
+    popupAnchor: [0, -r],
+  });
+}
+
+const TREND_COLORS = {
+  'rising-fast':  '#dc2626',
+  'rising':       '#f59e0b',
+  'steady':       '#6b7280',
+  'falling':      '#34d399',
+  'falling-fast': '#059669',
+  'none':         '#3b82f6',
+};
+
+function classifyTrend(values) {
+  const nums = values.map(v => parseFloat(v)).filter(n => !isNaN(n));
+  if (nums.length < 2) return 'none';
+  const first = nums[0];
+  const last = nums[nums.length - 1];
+  const diff = last - first;
+  const days = nums.length - 1;
+  const rate = diff / days;
+  if (rate > 20)  return 'rising-fast';
+  if (rate > 5)   return 'rising';
+  if (rate < -20) return 'falling-fast';
+  if (rate < -5)  return 'falling';
+  return 'steady';
+}
+
+function trendFromChange(change, tendency) {
+  if (tendency === 'rising')  return change != null && Math.abs(change) > 20 ? 'rising-fast' : 'rising';
+  if (tendency === 'falling') return change != null && Math.abs(change) > 20 ? 'falling-fast' : 'falling';
+  if (tendency === 'steady')  return 'steady';
+  if (change == null) return 'none';
+  if (change > 20)  return 'rising-fast';
+  if (change > 5)   return 'rising';
+  if (change < -20) return 'falling-fast';
+  if (change < -5)  return 'falling';
+  return 'steady';
+}
+
+function inferTendency(change) {
+  if (change == null) return null;
+  if (change > 5)  return 'rising';
+  if (change < -5) return 'falling';
+  return 'steady';
+}
+
+function stationIcon(trend) {
+  const color = TREND_COLORS[trend] || TREND_COLORS['none'];
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:10px;height:10px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>`,
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+    popupAnchor: [0, -5],
+  });
+}
+
+const map = L.map('hydro-map').setView([43.9, 21.0], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap',
+  maxZoom: 18,
+}).addTo(map);
+
+const plantMarkers = {};
+const stationMarkers = {};
+const connectionLines = [];
+let linesDrawn = false;
+
+PLANTS.forEach(p => {
+  const m = L.marker([p.lat, p.lng], { icon: plantIcon(p.mw), zIndexOffset: 1000 })
+    .bindPopup(`<div class="plant-popup"><h4>⚡ ${p.name}</h4><div class="pp-cap">${p.mw} MW</div><div class="pp-river">${p.river} · ${p.branch} branch</div><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${p.type === 'pumped' ? 'Pumped storage' : 'Conventional'}</div></div>`)
+    .addTo(map);
+  plantMarkers[p.name] = m;
+});
+
+function ensureStationMarker(name, lat, lng, src) {
+  if (lat == null || lng == null) return;
+  stationCoords[name] = { lat, lng, src };
+  if (!stationMarkers[name]) {
+    const m = L.marker([lat, lng], { icon: stationIcon('none') })
+      .bindPopup(`<div class="station-popup"><h4>${esc(name)}</h4><div style="color:var(--muted);font-size:.75rem">${src} station</div><div style="margin-top:.3rem">Loading…</div></div>`)
+      .addTo(map);
+    stationMarkers[name] = m;
+  }
+}
+
+function drawConnectionLines() {
+  if (linesDrawn) return;
+  linesDrawn = true;
+  Object.entries(PLANT_STATIONS).forEach(([plantName, stNames]) => {
+    const plant = PLANTS.find(p => p.name === plantName);
+    if (!plant) return;
+    stNames.forEach(sn => {
+      const sc = stationCoords[sn];
+      if (!sc) return;
+      const line = L.polyline([[plant.lat, plant.lng], [sc.lat, sc.lng]], {
+        color: '#94a3b8', weight: 1.5, opacity: 0.5, dashArray: '4 4',
+      }).addTo(map);
+      connectionLines.push(line);
+    });
+  });
+}
+
+// ── Rivers ───────────────────────────────────────────────────────────
+const RIVERS = [
+  { name: 'Danube', color: '#1d4ed8', weight: 5, opacity: 0.30, labelOffset: 4,
+    coords: [
+      [45.85,18.87],[45.67,18.98],[45.35,19.17],[45.26,19.85],[45.15,20.05],
+      [44.95,20.25],[44.85,20.41],[44.78,20.53],[44.66,20.93],[44.62,21.18],
+      [44.76,21.51],[44.66,21.63],[44.56,21.85],[44.67,22.10],[44.67,22.53],
+      [44.49,22.55],[44.31,22.57],[44.24,22.70],[44.29,22.95],
+    ],
+    flowStations: ['BEZDAN','APATIN','NOVI SAD','ZEMUN','SMEDEREVO','VELIKO GRADIŠTE','GOLUBAC','BANATSKA PALANKA'],
+  },
+  { name: 'Sava', color: '#3b82f6', weight: 3.5, opacity: 0.25, labelOffset: 3,
+    coords: [
+      [44.77,19.00],[44.81,19.09],[44.88,19.07],[44.95,19.15],[44.96,19.30],
+      [44.94,19.52],[44.83,19.60],[44.80,19.76],[44.81,19.99],[44.80,20.33],
+      [44.82,20.45],
+    ],
+    flowStations: ['JAMENA','SREMSKA MITROVICA','ŠABAC','BEOGRAD'],
+  },
+  { name: 'Drina', color: '#0891b2', weight: 3.5, opacity: 0.30, labelOffset: 3,
+    coords: [
+      [43.78,19.29],[43.85,19.36],[43.97,19.41],[44.10,19.35],[44.25,19.27],
+      [44.37,19.11],[44.53,19.13],[44.69,19.21],[44.85,19.27],
+    ],
+    flowStations: ['BAJINA BAŠTA','RADALJ','BADOVINCI'],
+  },
+  { name: 'Lim', color: '#0d9488', weight: 2.5, opacity: 0.30, labelOffset: 2,
+    coords: [
+      [43.20,19.75],[43.38,19.65],[43.46,19.58],[43.54,19.52],[43.65,19.46],
+      [43.78,19.29],
+    ],
+    flowStations: ['PRIJEPOLJE','BRODAREVO','PRIBOJ'],
+  },
+  { name: 'Uvac', color: '#0d9488', weight: 2, opacity: 0.25, labelOffset: 2,
+    coords: [
+      [43.35,20.05],[43.42,19.93],[43.48,19.85],[43.52,19.81],[43.58,19.70],
+      [43.65,19.46],
+    ],
+    flowStations: [],
+  },
+  { name: 'Vlasina', color: '#7c3aed', weight: 2, opacity: 0.25, labelOffset: 1,
+    coords: [
+      [42.71,22.07],[42.75,22.11],[42.83,22.14],[42.93,22.13],[43.05,22.03],
+    ],
+    flowStations: ['SVOĐE','VLASOTINCE'],
+  },
+  { name: 'Nišava', color: '#7c3aed', weight: 2, opacity: 0.25, labelOffset: 2,
+    coords: [
+      [43.01,22.75],[43.08,22.68],[43.15,22.59],[43.23,22.31],[43.28,22.05],
+      [43.32,21.90],
+    ],
+    flowStations: ['DIMITROVGRAD','PIROT','BELA PALANKA','NIŠ'],
+  },
+  { name: 'Z. Morava', color: '#b45309', weight: 2.5, opacity: 0.25, labelOffset: 3,
+    coords: [
+      [43.83,19.99],[43.86,20.10],[43.90,20.18],[43.91,20.23],[43.89,20.35],
+      [43.81,20.52],[43.72,20.69],[43.62,20.99],[43.62,21.21],[43.67,21.42],
+    ],
+    flowStations: ['KRATOVSKA STENA','ČAČAK'],
+  },
+];
+
+function drawRivers() {
+  RIVERS.forEach(river => {
+    const line = L.polyline(river.coords, {
+      color: river.color, weight: river.weight, opacity: river.opacity,
+      lineCap: 'round', lineJoin: 'round',
+    }).addTo(map);
+    line.bindTooltip(river.name, { sticky: true, className: 'river-tooltip' });
+    line.bindPopup(`<div class="river-popup"><b>${river.name}</b><div id="rf-${river.name.replace(/[^a-zA-Z]/g,'')}" style="margin-top:.3rem;font-size:.8rem;color:var(--muted)">Click Refresh for flow data</div></div>`);
+    river._line = line;
+
+    const step = river.coords.length > 12 ? 3 : 2;
+    for (let i = 0; i < river.coords.length - 1; i += step) {
+      const [lat1, lng1] = river.coords[i];
+      const [lat2, lng2] = river.coords[Math.min(i + 1, river.coords.length - 1)];
+      const midLat = (lat1 + lat2) / 2;
+      const midLng = (lng1 + lng2) / 2;
+      const angle = -(Math.atan2(lat2 - lat1, lng2 - lng1) * 180 / Math.PI);
+      L.marker([midLat, midLng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:rotate(${angle}deg);color:${river.color};font-size:9px;opacity:.55;line-height:1">▶</div>`,
+          iconSize: [9, 9], iconAnchor: [4, 4],
+        }),
+        interactive: false, pane: 'overlayPane',
+      }).addTo(map);
+    }
+
+    const li = river.coords[river.labelOffset || Math.floor(river.coords.length / 2)];
+    L.marker(li, {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="color:${river.color};font-size:10px;font-weight:700;font-style:italic;text-shadow:1px 1px 2px #fff,-1px -1px 2px #fff,1px -1px 2px #fff,-1px 1px 2px #fff;white-space:nowrap;pointer-events:none">${river.name}</div>`,
+        iconSize: [80, 14], iconAnchor: [0, 7],
+      }),
+      interactive: false,
+    }).addTo(map);
+  });
+}
+drawRivers();
+
+function updateRiverFlows() {
+  const flowMap = {};
+  stationData.forEach(s => {
+    if (s.river_flow != null) flowMap[s.name] = { flow: s.river_flow, stage: s.water_stage_cm };
+  });
+  if (danubeData && danubeData.stations) {
+    danubeData.stations.forEach(s => {
+      if (s.water_stage_cm != null) flowMap[s.name] = { stage: s.water_stage_cm };
+    });
+  }
+
+  RIVERS.forEach(river => {
+    if (!river._line) return;
+    let rows = '';
+    river.flowStations.forEach(name => {
+      const d = flowMap[name];
+      if (!d) return;
+      const flowStr = d.flow != null ? `<b>${d.flow} m³/s</b>` : '';
+      const stageStr = d.stage != null ? `${d.stage} cm` : '';
+      const sep = flowStr && stageStr ? ' · ' : '';
+      rows += `<tr><td style="padding-right:.5rem">${esc(name)}</td><td>${flowStr}${sep}${stageStr}</td></tr>`;
+    });
+    const html = rows
+      ? `<div class="river-popup"><b>${river.name}</b><table style="margin-top:.3rem;font-size:.8rem">${rows}</table></div>`
+      : `<div class="river-popup"><b>${river.name}</b><div style="margin-top:.3rem;font-size:.8rem;color:var(--muted)">No flow data available</div></div>`;
+    river._line.setPopupContent(html);
+  });
+}
+
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'map-legend');
+  div.innerHTML = '<b>Legend</b><br>' +
+    '<i style="background:#1d4ed8"></i> Hydropower plant<br>' +
+    '<span style="display:inline-block;width:16px;height:3px;background:#1d4ed8;opacity:.5;border-radius:2px;margin-right:.3rem;vertical-align:2px"></span> River (▶ flow)<br>' +
+    '<i style="background:#dc2626"></i> Rising fast<br>' +
+    '<i style="background:#f59e0b"></i> Rising<br>' +
+    '<i style="background:#6b7280"></i> Steady<br>' +
+    '<i style="background:#34d399"></i> Falling<br>' +
+    '<i style="background:#059669"></i> Falling fast<br>' +
+    '<i style="background:#3b82f6"></i> No data<br>' +
+    '<span style="color:#94a3b8;font-size:.7rem">┈┈ station → plant link</span>';
+  return div;
+};
+legend.addTo(map);
+
+function sparklineSvg(values, alertFirst, alertSecond) {
+  const parsed = values.map((v, i) => ({ i, n: parseFloat(v) })).filter(p => !isNaN(p.n));
+  if (parsed.length < 2) return '';
+  const W = 180, H = 48, pad = 4;
+  const nums = parsed.map(p => p.n);
+  const allNums = [...nums];
+  if (isFinite(alertFirst)) allNums.push(alertFirst);
+  if (isFinite(alertSecond)) allNums.push(alertSecond);
+  const mn = Math.min(...allNums) - 5;
+  const mx = Math.max(...allNums) + 5;
+  const rng = mx - mn || 1;
+  const totalSlots = values.length - 1 || 1;
+  const x = idx => pad + idx * ((W - 2 * pad) / totalSlots);
+  const y = v => pad + (1 - (v - mn) / rng) * (H - 2 * pad);
+  const pts = parsed.map(p => `${x(p.i).toFixed(1)},${y(p.n).toFixed(1)}`).join(' ');
+  const trendColor = TREND_COLORS[classifyTrend(values)] || TREND_COLORS['none'];
+
+  let alertLines = '';
+  if (isFinite(alertFirst)) {
+    const ay = y(alertFirst).toFixed(1);
+    alertLines += `<line x1="${pad}" y1="${ay}" x2="${W-pad}" y2="${ay}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 2" opacity=".6"/><text x="${W-pad-1}" y="${ay-2}" text-anchor="end" fill="#f59e0b" font-size="7">1st</text>`;
+  }
+  if (isFinite(alertSecond)) {
+    const ay = y(alertSecond).toFixed(1);
+    alertLines += `<line x1="${pad}" y1="${ay}" x2="${W-pad}" y2="${ay}" stroke="#dc2626" stroke-width="1" stroke-dasharray="3 2" opacity=".6"/><text x="${W-pad-1}" y="${ay-2}" text-anchor="end" fill="#dc2626" font-size="7">2nd</text>`;
+  }
+
+  const dots = parsed.map(p => `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.n).toFixed(1)}" r="2.5" fill="${trendColor}"/>`).join('');
+
+  return `<svg width="${W}" height="${H}" style="display:block;margin:.3rem 0">` +
+    alertLines +
+    `<polyline points="${pts}" fill="none" stroke="${trendColor}" stroke-width="2" stroke-linejoin="round"/>` +
+    dots +
+    `</svg>`;
+}
+
+function normalizeName(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getForecastForStation(name, src) {
+  const norm = normalizeName(name);
+  if (src === 'INHGA') {
+    if (inhgaForecasts[name]) return inhgaForecasts[name];
+    for (const [k, v] of Object.entries(inhgaForecasts)) {
+      if (normalizeName(k) === norm) return v;
+    }
+    return null;
+  }
+  if (rhmssForecasts[name]) return rhmssForecasts[name];
+  for (const [k, v] of Object.entries(rhmssForecasts)) {
+    if (normalizeName(k) === norm) return v;
+  }
+  return null;
+}
+
+const TREND_LABELS = {
+  'rising-fast': 'Rising fast ▲▲',
+  'rising': 'Rising ▲',
+  'steady': 'Steady ▬',
+  'falling': 'Falling ▼',
+  'falling-fast': 'Falling fast ▼▼',
+  'none': '',
+};
+
+function updateMapStations() {
+  stationData.forEach(s => ensureStationMarker(s.name, s.lat, s.lng, 'RHMSS'));
+  if (danubeData && danubeData.stations) {
+    danubeData.stations.forEach(s => ensureStationMarker(s.name, s.lat, s.lng, 'INHGA'));
+  }
+  drawConnectionLines();
+  updateRiverFlows();
+
+  const rhmssMap = {};
+  stationData.forEach(s => { rhmssMap[s.name] = s; });
+  const inhgaMap = {};
+  if (danubeData && danubeData.stations) {
+    danubeData.stations.forEach(s => { inhgaMap[s.name] = s; });
+  }
+
+  Object.entries(stationCoords).forEach(([name, c]) => {
+    let dataHtml = '';
+    let forecastHtml = '';
+    const fc = getForecastForStation(name, c.src);
+    let trend = fc ? classifyTrend(fc.values) : 'none';
+    let stationObj = null;
+
+    if (c.src === 'RHMSS') {
+      const s = rhmssMap[name];
+      stationObj = s;
+      if (s) {
+        const h = s.water_stage_cm != null ? `<span class="sp-val">${s.water_stage_cm} cm</span>` : '–';
+        const chg = s.change_cm != null ? ` (${s.change_cm > 0 ? '+' : ''}${s.change_cm})` : '';
+        const effTend = s.tendency || inferTendency(s.change_cm);
+        const tend = effTend ? ` ${effTend}` : '';
+        const flow = s.river_flow != null ? `<br>Flow: ${s.river_flow} m³/s` : '';
+        dataHtml = `H: ${h}${chg}${tend}${flow}<br><span style="font-size:.72rem;color:var(--muted)">${esc(s.river)}</span>`;
+      }
+    } else {
+      const s = inhgaMap[name];
+      stationObj = s;
+      if (s) {
+        const h = s.water_stage_cm != null ? `<span class="sp-val">${s.water_stage_cm} cm</span>` : '–';
+        const chg = s.change_cm != null ? ` (${s.change_cm > 0 ? '+' : ''}${s.change_cm})` : '';
+        const effTend = s.tendency || inferTendency(s.change_cm);
+        const tend = effTend ? ` ${effTend}` : '';
+        const al = s.alert_level ? `<br><span style="color:var(--danger)">${esc(s.alert_level)}</span>` : '';
+        dataHtml = `H: ${h}${chg}${tend}${al}<br><span style="font-size:.72rem;color:var(--muted)">Dunăre</span>`;
+      }
+    }
+
+    if (trend === 'none' && stationObj) {
+      trend = trendFromChange(stationObj.change_cm, stationObj.tendency);
+    }
+
+    if (fc) {
+      const a1 = parseFloat(fc.first_alert) || Infinity;
+      const a2 = parseFloat(fc.second_alert) || Infinity;
+      const spark = sparklineSvg(fc.values, a1, a2);
+      const trendLabel = TREND_LABELS[trend];
+      const trendColor = TREND_COLORS[trend];
+      const dayLabels = (fc.labels || []).map(l => `<span style="flex:1;text-align:center;font-size:.6rem;color:var(--muted)">${esc(l)}</span>`).join('');
+      const dayRow = dayLabels ? `<div style="display:flex;width:180px">${dayLabels}</div>` : '';
+      forecastHtml = `<div style="margin-top:.35rem;border-top:1px solid #e2e8f0;padding-top:.3rem">` +
+        `<div style="font-size:.72rem;font-weight:600;color:${trendColor}">${trendLabel}</div>` +
+        spark + dayRow +
+        `<div style="font-size:.68rem;color:var(--muted)">Forecast (cm): ${fc.values.join(' → ')}</div></div>`;
+    }
+
+    const marker = stationMarkers[name];
+    if (marker) {
+      marker.setIcon(stationIcon(trend));
+      marker.setPopupContent(
+        `<div class="station-popup"><h4>${esc(name)}</h4>` +
+        `<div style="color:var(--muted);font-size:.75rem">${c.src} station</div>` +
+        `<div style="margin-top:.3rem">${dataHtml}</div>${forecastHtml}</div>`
+      );
+    }
+  });
+}
+
+// ── Plant Group Aggregated Trends ────────────────────────────────────
+const PLANT_GROUPS = [
+  {
+    id: 'djerdap',
+    name: 'Đerdap (Danube)',
+    mw: 1350,
+    color: '#1d4ed8',
+    plants: ['Đerdap I (1080 MW)', 'Đerdap II (270 MW)'],
+    rhmssStations: ['GOLUBAC', 'VELIKO GRADIŠTE', 'BANATSKA PALANKA'],
+    inhgaStations: ['Bazias', 'Moldova Veche', 'Drencova', 'Orsova', 'Dr.Tr.Severin', 'Gruia'],
+  },
+  {
+    id: 'drina',
+    name: 'Drina Basin',
+    mw: 1160,
+    color: '#0891b2',
+    plants: ['Bajina Bašta (420 MW)', 'RHE Bajina Bašta (614 MW)', 'Zvornik (126 MW)'],
+    rhmssStations: ['BAJINA BAŠTA', 'RADALJ', 'BADOVINCI'],
+    inhgaStations: [],
+  },
+  {
+    id: 'lim-uvac',
+    name: 'Lim–Uvac',
+    mw: 211,
+    color: '#0d9488',
+    plants: ['Potpeć (51 MW)', 'Bistrica (102 MW)', 'Kokin Brod (22 MW)', 'Uvac (36 MW)'],
+    rhmssStations: ['BRODAREVO', 'PRIJEPOLJE', 'PRIBOJ'],
+    inhgaStations: [],
+  },
+  {
+    id: 'southeast',
+    name: 'SE Serbia (Vlasina + Pirot + Morava)',
+    mw: 226,
+    color: '#7c3aed',
+    plants: ['Vlasina (129 MW)', 'Pirot (80 MW)', 'Međuvršje (9 MW)', 'Ovčar Banja (8 MW)'],
+    rhmssStations: ['SVOĐE', 'VLASOTINCE', 'PIROT', 'DIMITROVGRAD', 'BELA PALANKA', 'IZATOVAC', 'KRATOVSKA STENA', 'ČAČAK'],
+    inhgaStations: [],
+  },
+];
+
+function wideSparkSvg(seriesArr, W, H) {
+  if (!seriesArr.length) return '';
+  const pad = 6;
+  const colors = ['#1d4ed8', '#0891b2', '#f59e0b', '#dc2626', '#059669', '#7c3aed', '#e11d48'];
+  let globalMin = Infinity, globalMax = -Infinity;
+  seriesArr.forEach(s => {
+    s.nums = s.values.map(v => parseFloat(v)).filter(n => !isNaN(n));
+    s.nums.forEach(n => { if (n < globalMin) globalMin = n; if (n > globalMax) globalMax = n; });
+  });
+  if (globalMin === Infinity) return '';
+  const margin = (globalMax - globalMin) * 0.08 || 5;
+  globalMin -= margin; globalMax += margin;
+  const rng = globalMax - globalMin || 1;
+  const x = (i, total) => pad + i * ((W - 2 * pad) / Math.max(total - 1, 1));
+  const y = v => pad + (1 - (v - globalMin) / rng) * (H - 2 * pad);
+
+  let paths = '';
+  seriesArr.forEach((s, si) => {
+    const col = colors[si % colors.length];
+    const pts = s.nums.map((n, i) => `${x(i, s.nums.length).toFixed(1)},${y(n).toFixed(1)}`);
+    if (pts.length < 2) return;
+    paths += `<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" opacity=".85"/>`;
+    const last = s.nums[s.nums.length - 1];
+    paths += `<circle cx="${x(s.nums.length-1, s.nums.length).toFixed(1)}" cy="${y(last).toFixed(1)}" r="3" fill="${col}"/>`;
+    paths += `<text x="${x(s.nums.length-1, s.nums.length).toFixed(1) - 0 + 5}" y="${y(last).toFixed(1) + 3}" fill="${col}" font-size="8" font-weight="600">${s.label}</text>`;
+  });
+
+  return `<svg width="${W}" height="${H}" style="display:block;width:100%;height:auto">${paths}</svg>`;
+}
+
+function renderPlantGroups() {
+  const pgEl = document.getElementById('plant-groups');
+  const rhmssMap = {};
+  stationData.forEach(s => { rhmssMap[s.name] = s; });
+  const inhgaMap = {};
+  if (danubeData && danubeData.stations) {
+    danubeData.stations.forEach(s => { inhgaMap[s.name] = s; });
+  }
+
+  const hasData = stationData.length > 0 || (danubeData && danubeData.stations && danubeData.stations.length > 0);
+  if (!hasData) return;
+
+  let cardsHtml = '';
+  PLANT_GROUPS.forEach(g => {
+    const stationsInfo = [];
+
+    g.rhmssStations.forEach(name => {
+      const s = rhmssMap[name];
+      const fc = getForecastForStation(name, 'RHMSS');
+      const trend = s ? trendFromChange(s.change_cm, s.tendency) : (fc ? classifyTrend(fc.values) : 'none');
+      stationsInfo.push({
+        name,
+        src: 'RHMSS',
+        stage: s ? s.water_stage_cm : null,
+        change: s ? s.change_cm : null,
+        flow: s ? s.river_flow : null,
+        tendency: s ? (s.tendency || inferTendency(s.change_cm)) : null,
+        trend,
+        forecast: fc,
+      });
+    });
+
+    g.inhgaStations.forEach(name => {
+      const s = inhgaMap[name];
+      if (!s && !getForecastForStation(name, 'INHGA')) return;
+      const fc = getForecastForStation(name, 'INHGA');
+      const trend = s ? trendFromChange(s.change_cm, s.tendency) : (fc ? classifyTrend(fc.values) : 'none');
+      stationsInfo.push({
+        name,
+        src: 'INHGA',
+        stage: s ? s.water_stage_cm : null,
+        change: s ? s.change_cm : null,
+        flow: null,
+        tendency: s ? (s.tendency || inferTendency(s.change_cm)) : null,
+        trend,
+        forecast: fc,
+      });
+    });
+
+    const trendCounts = { 'rising-fast': 0, rising: 0, steady: 0, falling: 0, 'falling-fast': 0, none: 0 };
+    stationsInfo.forEach(s => { trendCounts[s.trend] = (trendCounts[s.trend] || 0) + 1; });
+    const risingTotal = trendCounts['rising-fast'] + trendCounts.rising;
+    const fallingTotal = trendCounts['falling-fast'] + trendCounts.falling;
+    let groupTrend = 'none';
+    if (risingTotal > fallingTotal) groupTrend = trendCounts['rising-fast'] > trendCounts.rising ? 'rising-fast' : 'rising';
+    else if (fallingTotal > risingTotal) groupTrend = trendCounts['falling-fast'] > trendCounts.falling ? 'falling-fast' : 'falling';
+    else if (trendCounts.steady > 0) groupTrend = 'steady';
+    const groupTrendCss = groupTrend.startsWith('rising') ? 'pg-rising' : groupTrend.startsWith('falling') ? 'pg-falling' : groupTrend === 'steady' ? 'pg-steady' : 'pg-none';
+
+    let stationChips = '';
+    stationsInfo.forEach(si => {
+      const dotColor = TREND_COLORS[si.trend] || TREND_COLORS.none;
+      const val = si.stage != null ? `${si.stage}` : '–';
+      const chg = si.change != null ? `<span class="pg-chg" style="color:${TREND_COLORS[si.trend]}">${si.change > 0 ? '+' : ''}${si.change}</span>` : '';
+      const srcTag = si.src === 'INHGA' ? '<span style="font-size:.6rem;color:var(--danube);margin-left:.1rem">RO</span>' : '';
+      stationChips += `<div class="pg-station"><span class="pg-dot" style="background:${dotColor}"></span><span>${esc(si.name)}${srcTag}</span> <span class="pg-val">${val}</span> ${chg}</div>`;
+    });
+
+    const sparkSeries = [];
+    stationsInfo.forEach(si => {
+      if (si.forecast && si.forecast.values && si.forecast.values.length >= 2) {
+        sparkSeries.push({ label: si.name.length > 10 ? si.name.substring(0, 8) + '…' : si.name, values: si.forecast.values });
+      }
+    });
+    const sparkHtml = wideSparkSvg(sparkSeries, 300, 80);
+
+    const stagesWithData = stationsInfo.filter(s => s.stage != null);
+    const avgStage = stagesWithData.length ? Math.round(stagesWithData.reduce((a, s) => a + s.stage, 0) / stagesWithData.length) : null;
+    const flowsWithData = stationsInfo.filter(s => s.flow != null);
+    const totalFlow = flowsWithData.length ? Math.round(flowsWithData.reduce((a, s) => a + s.flow, 0)) : null;
+
+    let summaryHtml = '<div class="pg-summary">';
+    if (avgStage != null) summaryHtml += `<div class="pg-metric"><span class="pg-metric-label">Avg Stage</span><span class="pg-metric-val">${avgStage} cm</span></div>`;
+    if (totalFlow != null) summaryHtml += `<div class="pg-metric"><span class="pg-metric-label">Total Flow</span><span class="pg-metric-val">${totalFlow.toLocaleString()} m³/s</span></div>`;
+    summaryHtml += `<div class="pg-metric"><span class="pg-metric-label">Stations</span><span class="pg-metric-val">${stationsInfo.length} (${stagesWithData.length} reporting)</span></div>`;
+    const trendLabel = TREND_LABELS[groupTrend] || '';
+    const trendColor = TREND_COLORS[groupTrend] || TREND_COLORS.none;
+    summaryHtml += `<div class="pg-metric"><span class="pg-metric-label">Trend</span><span class="pg-metric-val" style="color:${trendColor}">${trendLabel || 'No data'}</span></div>`;
+    summaryHtml += '</div>';
+
+    cardsHtml += `
+      <div class="pg-card ${groupTrendCss}">
+        <div class="pg-header">
+          <div>
+            <div class="pg-title" style="color:${g.color}">${esc(g.name)}</div>
+            <div class="pg-plants">${g.plants.join(' · ')}</div>
+          </div>
+          <span class="pg-mw">⚡ ${g.mw.toLocaleString()} MW</span>
+        </div>
+        <div class="pg-stations">${stationChips}</div>
+        ${sparkHtml ? `<div class="pg-spark-area"><div class="pg-trend-label" style="color:${trendColor}">${trendLabel} — 5-day forecast</div>${sparkHtml}</div>` : ''}
+        ${summaryHtml}
+      </div>`;
+  });
+
+  pgEl.innerHTML = cardsHtml;
+  document.getElementById('pg-status').textContent = `${PLANT_GROUPS.length} groups`;
+}
 
 async function refresh() {
   refreshBtn.disabled = true;
   errorEl.innerHTML = '';
-  statusEl.innerHTML = '<span class="spinner"></span>Fetching ~146 stations…';
+  statusEl.innerHTML = '<span class="spinner"></span>Fetching data…';
+  danubeSt.innerHTML = '<span class="spinner"></span>';
+
+  const p1 = fetch('/api/stations')
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(json => {
+      stationData = json.stations;
+      renderTable();
+      updateMapStations();
+      return json;
+    });
+
+  const p2 = fetch('/api/inhga-danube')
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(json => {
+      danubeData = json;
+      renderDanubeTable();
+      updateMapStations();
+      danubeSt.textContent = json.elapsed_seconds != null ? `${json.stations.length} stations in ${json.elapsed_seconds}s` : '';
+      return json;
+    })
+    .catch(err => {
+      danubeEl.innerHTML = `<div class="danube-error">Failed to load INHGA data: ${esc(err.message)}</div>`;
+      danubeSt.textContent = '';
+    });
+
+  const p4 = fetch('/api/inhga-forecast')
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(json => {
+      renderINHGAForecast(json);
+      inhgaFcSt.textContent = json.elapsed_seconds != null ? `${json.rows.length} stations in ${json.elapsed_seconds}s` : '';
+      inhgaForecasts = {};
+      const cols = json.columns || [];
+      const dayLabels = cols.slice(2, -2).map(c => c.replace(/\s*\(.*\)/, '').split(' ').pop());
+      (json.rows || []).forEach(r => {
+        inhgaForecasts[r.station] = {
+          values: r.values,
+          first_alert: r.first_alert,
+          second_alert: r.second_alert,
+          labels: dayLabels,
+        };
+      });
+      updateMapStations();
+      return json;
+    })
+    .catch(err => {
+      inhgaFcEl.innerHTML = `<div class="danube-error">Failed to load INHGA forecast: ${esc(err.message)}</div>`;
+      inhgaFcSt.textContent = '';
+    });
+
+  const p3 = fetch('/api/forecast')
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(json => {
+      renderForecastTable(json);
+      fcSt.textContent = json.elapsed_seconds != null ? `${json.rows.length} stations in ${json.elapsed_seconds}s` : '';
+      rhmssForecasts = {};
+      const cols = json.columns || [];
+      const dayLabels = cols.slice(2, -2).map(c => c.replace(/\s*\(.*\)/, '').split(' ').pop());
+      (json.rows || []).forEach(r => {
+        const key = r.station.toUpperCase();
+        rhmssForecasts[key] = {
+          values: r.values,
+          first_alert: r.first_alert,
+          second_alert: r.second_alert,
+          labels: dayLabels,
+        };
+      });
+      updateMapStations();
+      return json;
+    })
+    .catch(err => {
+      fcEl.innerHTML = `<div class="danube-error">Failed to load forecast: ${esc(err.message)}</div>`;
+      fcSt.textContent = '';
+    });
 
   try {
-    const res = await fetch('/api/stations');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    stationData = json.stations;
-    statusEl.textContent = `${json.count} stations loaded in ${json.elapsed_seconds}s`;
-    renderTable();
+    const [rhmss] = await Promise.all([p1, p2, p3, p4]);
+    statusEl.textContent = `${rhmss.count} RHMSS stations in ${rhmss.elapsed_seconds}s`;
+    renderPlantGroups();
   } catch (err) {
-    errorEl.innerHTML = `<div class="error-box">Failed to fetch data: ${esc(err.message)}</div>`;
+    errorEl.innerHTML = `<div class="error-box">Failed to fetch RHMSS data: ${esc(err.message)}</div>`;
     statusEl.textContent = '';
   } finally {
     refreshBtn.disabled = false;
+    renderPlantGroups();
   }
+}
+
+function renderDanubeTable() {
+  if (!danubeData) return;
+  const d = danubeData;
+
+  if (d.error) {
+    danubeEl.innerHTML = `<div class="danube-error">Error: ${esc(d.error)}</div>`;
+    return;
+  }
+
+  const b = d.bulletin || {};
+  const q = searchEl.value.trim().toLowerCase();
+  const stations = q
+    ? d.stations.filter(s => s.name.toLowerCase().includes(q) || s.river.toLowerCase().includes(q))
+    : d.stations;
+
+  let bulletinHtml = '';
+  if (b.bazias_flow_m3s != null || b.bulletin_url) {
+    const parts = [];
+    if (b.bulletin_date) parts.push(`<span class="bs-item"><span class="bs-label">Bulletin</span> <span>${esc(b.bulletin_date)}</span></span>`);
+    if (b.bazias_flow_m3s != null) {
+      const tendCls = b.bazias_tendency ? `tendency-${b.bazias_tendency}` : '';
+      parts.push(`<span class="bs-item"><span class="bs-label">Baziaș Flow</span> <span class="bs-value">${b.bazias_flow_m3s.toLocaleString()} m³/s</span> <span class="${tendCls}" style="font-size:.78rem">${fmtTendArrow(b.bazias_tendency)}</span></span>`);
+    }
+    if (b.bazias_monthly_avg_m3s != null) {
+      const pct = b.bazias_flow_m3s != null ? ` (${Math.round(b.bazias_flow_m3s / b.bazias_monthly_avg_m3s * 100)}%)` : '';
+      parts.push(`<span class="bs-item"><span class="bs-label">Month Avg</span> <span class="bs-value">${b.bazias_monthly_avg_m3s.toLocaleString()} m³/s</span><span style="color:var(--muted);font-size:.75rem">${pct}</span></span>`);
+    }
+    if (b.forecast_bazias_flow_m3s != null) {
+      const tendCls = b.forecast_bazias_tendency ? `tendency-${b.forecast_bazias_tendency}` : '';
+      parts.push(`<span class="bs-item"><span class="bs-label">Forecast</span> <span class="bs-value">${b.forecast_bazias_flow_m3s.toLocaleString()} m³/s</span> <span class="${tendCls}" style="font-size:.78rem">${fmtTendArrow(b.forecast_bazias_tendency)}</span></span>`);
+    }
+    if (b.forecast_monthly_avg_m3s != null && b.forecast_monthly_avg_m3s !== b.bazias_monthly_avg_m3s) {
+      parts.push(`<span class="bs-item"><span class="bs-label">Fcst Month Avg</span> <span class="bs-value">${b.forecast_monthly_avg_m3s.toLocaleString()} m³/s</span></span>`);
+    }
+    if (b.bulletin_url) parts.push(`<a href="${esc(b.bulletin_url)}" target="_blank" rel="noopener" style="margin-left:auto;font-size:.78rem">View bulletin</a>`);
+    bulletinHtml = `<div class="bulletin-strip">${parts.join('')}</div>`;
+  }
+
+  if (!stations.length) {
+    danubeEl.innerHTML = bulletinHtml + '<div class="empty-state">No Danube stations match your filter.</div>';
+    return;
+  }
+
+  const rows = stations.map((s, i) => {
+    const change = fmtChange(s.change_cm);
+    const effectiveTendency = s.tendency || inferTendency(s.change_cm);
+    const tendCls = effectiveTendency ? `tendency-${effectiveTendency}` : '';
+    const tendLabel = effectiveTendency ? effectiveTendency.charAt(0).toUpperCase() + effectiveTendency.slice(1) : '–';
+    const alert1 = fmt(s.first_alert_cm);
+    const alert2 = fmt(s.second_alert_cm);
+
+    let rowCls = '';
+    let alertBadge = '';
+    if (s.water_stage_cm != null && s.second_alert_cm != null && s.water_stage_cm >= s.second_alert_cm) {
+      rowCls = 'alert-active-2';
+      alertBadge = ' <span class="badge badge-alert2">2nd ALERT</span>';
+    } else if (s.water_stage_cm != null && s.first_alert_cm != null && s.water_stage_cm >= s.first_alert_cm) {
+      rowCls = 'alert-active-1';
+      alertBadge = ' <span class="badge badge-alert1">1st ALERT</span>';
+    } else if (s.alert_level === 'DANGER') {
+      rowCls = 'alert-active-3';
+      alertBadge = ' <span class="badge badge-danger">DANGER</span>';
+    } else if (s.alert_level === 'FLOOD') {
+      rowCls = 'alert-active-2';
+      alertBadge = ' <span class="badge badge-flood">FLOOD</span>';
+    } else if (s.alert_level === 'ATTENTION') {
+      rowCls = 'alert-active-1';
+      alertBadge = ' <span class="badge badge-attention">ATTENTION</span>';
+    }
+
+    let pctHtml = '';
+    let barHtml = '';
+    if (s.water_stage_cm != null && s.first_alert_cm != null && s.first_alert_cm > 0) {
+      const pct = Math.round((s.water_stage_cm / s.first_alert_cm) * 100);
+      const barW = Math.min(pct, 100);
+      const barCls = pct >= 100 ? 'pct-danger' : pct >= 75 ? 'pct-warn' : 'pct-safe';
+      pctHtml = `<span class="pct-label">(${pct}% of 1st alert)</span>`;
+      barHtml = `<div class="pct-bar-wrap"><div class="pct-bar ${barCls}" style="width:${barW}%"></div></div>`;
+    }
+
+    const stageInline = s.water_stage_cm != null
+      ? `<span class="stage-inline">${s.water_stage_cm} cm</span>`
+      : '<span class="stage-inline" style="color:var(--muted)">–</span>';
+
+    const dateLabel = s.date ? `<span style="font-size:.72rem;color:var(--muted)">${esc(s.date.substring(0, 16))}</span>` : '';
+    const errCell = s.error ? `<span title="${esc(s.error)}" style="color:var(--danger)">⚠</span>` : '';
+
+    return `<tr class="${rowCls}">
+      <td class="num">${i + 1}</td>
+      <td class="station-cell">
+        <div class="station-header">
+          <a class="ext" href="${esc(s.detail_url)}" target="_blank" rel="noopener">${esc(s.name)}</a>
+          ${stageInline} ${pctHtml} ${alertBadge}
+        </div>
+        ${barHtml}
+        ${dateLabel}
+      </td>
+      <td>${esc(s.river)}</td>
+      <td class="num ${tendCls}">${change}</td>
+      <td class="num ${tendCls}">${tendLabel}</td>
+      <td class="num">${alert1}</td>
+      <td class="num">${alert2}</td>
+      <td>${errCell}</td>
+    </tr>`;
+  }).join('');
+
+  danubeEl.innerHTML = `${bulletinHtml}<div class="table-wrap" style="${bulletinHtml ? 'border-top-left-radius:0;border-top-right-radius:0' : ''}"><table>
+    <thead><tr>
+      <th class="num">#</th>
+      <th>Station / Stage</th>
+      <th>River</th>
+      <th class="num">Change (cm)</th>
+      <th>Tendency</th>
+      <th class="num">1st Alert (cm)</th>
+      <th class="num">2nd Alert (cm)</th>
+      <th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderINHGAForecast(d) {
+  if (d.error) {
+    inhgaFcEl.innerHTML = `<div class="danube-error">Error: ${esc(d.error)}</div>`;
+    return;
+  }
+  if (!d.rows || !d.rows.length) {
+    inhgaFcEl.innerHTML = '<div class="empty-state">No INHGA forecast data available.</div>';
+    return;
+  }
+
+  const cols = d.columns || [];
+  const headerCells = cols.map(c => `<th>${esc(c)}</th>`).join('');
+
+  const rows = d.rows.map(r => {
+    const a1 = parseFloat(r.first_alert) || Infinity;
+    const a2 = parseFloat(r.second_alert) || Infinity;
+
+    const valCells = r.values.map(v => {
+      const n = parseFloat(v);
+      let cls = '';
+      if (!isNaN(n) && n >= a2) cls = 'val-alert2';
+      else if (!isNaN(n) && n >= a1) cls = 'val-alert1';
+      return `<td class="${cls}">${esc(v || '–')}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td>${esc(r.station)}</td>
+      <td>${esc(r.km)}</td>
+      ${valCells}
+      <td>${esc(r.first_alert || '–')}</td>
+      <td>${esc(r.second_alert || '–')}</td>
+    </tr>`;
+  }).join('');
+
+  const srcLink = '<div style="text-align:center;margin-top:.5rem;font-size:.8rem"><a class="ext" href="https://www.afdj.ro/ro/cotele-dunarii" target="_blank" rel="noopener">Source: AFDJ / INHGA Danube Forecast</a></div>';
+
+  inhgaFcEl.innerHTML = `<div class="forecast-table-wrap"><table>
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>${srcLink}`;
+}
+
+function renderForecastTable(d) {
+  if (d.error) {
+    fcEl.innerHTML = `<div class="danube-error">Error: ${esc(d.error)}</div>`;
+    return;
+  }
+  if (!d.rows || !d.rows.length) {
+    fcEl.innerHTML = '<div class="empty-state">No forecast data available.</div>';
+    return;
+  }
+
+  const cols = d.columns || [];
+  const headerCells = cols.map(c => `<th>${esc(c)}</th>`).join('');
+
+  const rows = d.rows.map(r => {
+    const a1 = parseFloat(r.first_alert) || Infinity;
+    const a2 = parseFloat(r.second_alert) || Infinity;
+
+    const valCells = r.values.map(v => {
+      const n = parseFloat(v);
+      let cls = '';
+      if (!isNaN(n) && n >= a2) cls = 'val-alert2';
+      else if (!isNaN(n) && n >= a1) cls = 'val-alert1';
+      return `<td class="${cls}">${esc(v || '–')}</td>`;
+    }).join('');
+
+    const stationCell = r.detail_url
+      ? `<a class="ext" href="${esc(r.detail_url)}" target="_blank" rel="noopener">${esc(r.station)}</a>`
+      : esc(r.station);
+
+    return `<tr>
+      <td>${esc(r.river)}</td>
+      <td>${stationCell}</td>
+      ${valCells}
+      <td>${esc(r.first_alert || '–')}</td>
+      <td>${esc(r.second_alert || '–')}</td>
+    </tr>`;
+  }).join('');
+
+  const srcLink = '<div style="text-align:center;margin-top:.5rem;font-size:.8rem"><a class="ext" href="https://www.hidmet.gov.rs/eng/prognoza/prognoza_voda.php" target="_blank" rel="noopener">Source: RHMSS Hydrological Forecast</a></div>';
+
+  fcEl.innerHTML = `<div class="forecast-table-wrap"><table>
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>${srcLink}`;
 }
 
 function renderTable() {
@@ -249,14 +1358,14 @@ function renderTable() {
   }
 
   const rows = filtered.map((s, i) => {
-    const stage = fmt(s.water_stage_cm);
     const change = fmtChange(s.change_cm);
     const flow = fmt(s.river_flow);
     const temp = fmt(s.water_temp);
     const alert1 = fmt(s.first_flood_alert_cm);
     const alert2 = fmt(s.second_flood_alert_cm);
-    const tendCls = s.tendency ? `tendency-${s.tendency}` : '';
-    const tendLabel = s.tendency ? s.tendency.charAt(0).toUpperCase() + s.tendency.slice(1) : '–';
+    const effectiveTendency = s.tendency || inferTendency(s.change_cm);
+    const tendCls = effectiveTendency ? `tendency-${effectiveTendency}` : '';
+    const tendLabel = effectiveTendency ? effectiveTendency.charAt(0).toUpperCase() + effectiveTendency.slice(1) : '–';
 
     let rowCls = '';
     let alertBadge = '';
@@ -268,7 +1377,6 @@ function renderTable() {
       alertBadge = ' <span class="badge badge-alert1">1st ALERT</span>';
     }
 
-    // Percentage toward first flood alert (shown next to station name)
     let pctHtml = '';
     let barHtml = '';
     if (s.water_stage_cm != null && s.first_flood_alert_cm != null && s.first_flood_alert_cm > 0) {
@@ -326,6 +1434,11 @@ function fmt(v) { return v != null ? v : '–'; }
 function fmtChange(v) {
   if (v == null) return '–';
   return (v > 0 ? '+' : '') + v;
+}
+function fmtTendArrow(t) {
+  if (!t) return '';
+  const m = { rising: '▲', falling: '▼', steady: '▬' };
+  return m[t] || '';
 }
 function esc(s) {
   if (!s) return '';

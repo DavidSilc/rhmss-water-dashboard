@@ -8,3 +8,4 @@ venv/
 dist/
 build/
 .cursor/
+temp_*.html

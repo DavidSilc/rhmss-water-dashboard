@@ -1,0 +1,848 @@
+{
+  "BEZDAN": {
+    "lat": 45.85017,
+    "lng": 18.92594,
+    "river": "DUNAV",
+    "hm_id": "42010"
+  },
+  "APATIN": {
+    "lat": 45.67125,
+    "lng": 18.98179,
+    "river": "DUNAV",
+    "hm_id": "42015"
+  },
+  "BOGOJEVO": {
+    "lat": 45.53024,
+    "lng": 19.13021,
+    "river": "DUNAV",
+    "hm_id": "42020"
+  },
+  "BAČKA PALANKA": {
+    "lat": 45.2501,
+    "lng": 19.38973,
+    "river": "DUNAV",
+    "hm_id": "42030"
+  },
+  "NOVI SAD": {
+    "lat": 45.25513,
+    "lng": 19.84518,
+    "river": "DUNAV",
+    "hm_id": "42035"
+  },
+  "SLANKAMEN": {
+    "lat": 45.14148,
+    "lng": 20.2586,
+    "river": "DUNAV",
+    "hm_id": "42040"
+  },
+  "ZEMUN": {
+    "lat": 44.8444,
+    "lng": 20.4124,
+    "river": "DUNAV",
+    "hm_id": "42045"
+  },
+  "PANČEVO": {
+    "lat": 44.87057,
+    "lng": 20.63996,
+    "river": "DUNAV",
+    "hm_id": "42050"
+  },
+  "SMEDEREVO": {
+    "lat": 44.6651,
+    "lng": 20.92711,
+    "river": "DUNAV",
+    "hm_id": "42055"
+  },
+  "BANATSKA PALANKA": {
+    "lat": 44.84442,
+    "lng": 21.33214,
+    "river": "DUNAV",
+    "hm_id": "42060"
+  },
+  "VELIKO GRADIŠTE": {
+    "lat": 44.76292,
+    "lng": 21.51619,
+    "river": "DUNAV",
+    "hm_id": "42065"
+  },
+  "GOLUBAC": {
+    "lat": 44.65311,
+    "lng": 21.63052,
+    "river": "DUNAV",
+    "hm_id": "42070"
+  },
+  "PRAHOVO": {
+    "lat": 44.29261,
+    "lng": 22.58591,
+    "river": "DUNAV",
+    "hm_id": "42095"
+  },
+  "NOVI KNEŽEVAC": {
+    "lat": 46.04271,
+    "lng": 20.09335,
+    "river": "TISA",
+    "hm_id": "44010"
+  },
+  "SENTA": {
+    "lat": 45.93124,
+    "lng": 20.09016,
+    "river": "TISA",
+    "hm_id": "44020"
+  },
+  "NOVI BEČEJ": {
+    "lat": 45.59526,
+    "lng": 20.13436,
+    "river": "TISA",
+    "hm_id": "44030"
+  },
+  "BRANA NOVI BEČEJ GV": {
+    "lat": 45.598,
+    "lng": 20.133,
+    "river": "TISA",
+    "hm_id": "44035"
+  },
+  "TITEL": {
+    "lat": 45.20439,
+    "lng": 20.30604,
+    "river": "TISA",
+    "hm_id": "44040"
+  },
+  "VRBICA": {
+    "lat": 46.01137,
+    "lng": 20.30887,
+    "river": "ZLATICA",
+    "hm_id": "44028"
+  },
+  "HETIN": {
+    "lat": 45.66263,
+    "lng": 20.78917,
+    "river": "STARI BEGEJ",
+    "hm_id": "44201"
+  },
+  "SRPSKI ITEBEJ GV": {
+    "lat": 45.573,
+    "lng": 20.705,
+    "river": "PLOVNI BEGEJ",
+    "hm_id": "44211"
+  },
+  "SRPSKI ITEBEJ DV": {
+    "lat": 45.573,
+    "lng": 20.705,
+    "river": "PLOVNI BEGEJ",
+    "hm_id": "44212"
+  },
+  "JAMENA": {
+    "lat": 44.88404,
+    "lng": 19.06321,
+    "river": "SAVA",
+    "hm_id": "45084"
+  },
+  "SREMSKA MITROVICA": {
+    "lat": 44.97017,
+    "lng": 19.61241,
+    "river": "SAVA",
+    "hm_id": "45090"
+  },
+  "ŠABAC": {
+    "lat": 44.75715,
+    "lng": 19.6954,
+    "river": "SAVA",
+    "hm_id": "45094"
+  },
+  "BELJIN": {
+    "lat": 44.6271,
+    "lng": 19.96167,
+    "river": "SAVA",
+    "hm_id": "45096"
+  },
+  "BEOGRAD": {
+    "lat": 44.81533,
+    "lng": 20.44566,
+    "river": "SAVA",
+    "hm_id": "45099"
+  },
+  "BAJINA BAŠTA": {
+    "lat": 43.97122,
+    "lng": 19.56601,
+    "river": "DRINA",
+    "hm_id": "45865"
+  },
+  "RADALJ": {
+    "lat": 44.40389,
+    "lng": 19.18333,
+    "river": "DRINA",
+    "hm_id": "45882"
+  },
+  "BADOVINCI": {
+    "lat": 44.78569,
+    "lng": 19.37134,
+    "river": "DRINA",
+    "hm_id": "45885"
+  },
+  "BRODAREVO": {
+    "lat": 43.23048,
+    "lng": 19.71836,
+    "river": "LIM",
+    "hm_id": "45836"
+  },
+  "PRIJEPOLJE": {
+    "lat": 43.38921,
+    "lng": 19.64935,
+    "river": "MILEŠEVKA",
+    "hm_id": "45838"
+  },
+  "PRIBOJ": {
+    "lat": 43.06071,
+    "lng": 21.92425,
+    "river": "LIM",
+    "hm_id": "45842"
+  },
+  "ČEDOVO": {
+    "lat": 43.30323,
+    "lng": 19.99984,
+    "river": "VAPA",
+    "hm_id": "45843"
+  },
+  "ZAVLAKA": {
+    "lat": 44.45544,
+    "lng": 19.48342,
+    "river": "JADAR",
+    "hm_id": "45890"
+  },
+  "LEŠNICA": {
+    "lat": 44.6525,
+    "lng": 19.31,
+    "river": "JADAR",
+    "hm_id": "45892"
+  },
+  "MOROVIĆ": {
+    "lat": 45.00771,
+    "lng": 19.21764,
+    "river": "STUDVA",
+    "hm_id": "99302"
+  },
+  "VALJEVO": {
+    "lat": 44.27087,
+    "lng": 19.88633,
+    "river": "KOLUBARA",
+    "hm_id": "45905"
+  },
+  "SLOVAC": {
+    "lat": 44.34717,
+    "lng": 20.09321,
+    "river": "KOLUBARA",
+    "hm_id": "45908"
+  },
+  "BELI BROD": {
+    "lat": 44.36705,
+    "lng": 20.2021,
+    "river": "KOLUBARA",
+    "hm_id": "45910"
+  },
+  "DRAŽEVAC": {
+    "lat": 44.57583,
+    "lng": 20.23135,
+    "river": "KOLUBARA",
+    "hm_id": "45920"
+  },
+  "OBRENOVAC": {
+    "lat": 43.0378,
+    "lng": 22.72093,
+    "river": "KOLUBARA",
+    "hm_id": "45922"
+  },
+  "RAKOVICA": {
+    "lat": 44.74665,
+    "lng": 20.44295,
+    "river": "TOPČIDERSKA",
+    "hm_id": "45098"
+  },
+  "SEDLARI": {
+    "lat": 44.25514,
+    "lng": 19.84967,
+    "river": "JABLANICA",
+    "hm_id": "45903"
+  },
+  "BELO POLJE": {
+    "lat": 43.2662,
+    "lng": 20.52301,
+    "river": "OBNICA",
+    "hm_id": "45904"
+  },
+  "DEGURIĆ": {
+    "lat": 44.24285,
+    "lng": 19.89465,
+    "river": "GRADAC",
+    "hm_id": "45902"
+  },
+  "MIONICA": {
+    "lat": 44.25292,
+    "lng": 20.08408,
+    "river": "RIBNICA",
+    "hm_id": "45906"
+  },
+  "BOGOVAĐA": {
+    "lat": 44.32792,
+    "lng": 20.20087,
+    "river": "LJIG",
+    "hm_id": "45909"
+  },
+  "ZEOKE": {
+    "lat": 43.84483,
+    "lng": 20.26437,
+    "river": "PEŠTAN",
+    "hm_id": "45912"
+  },
+  "KOCELJEVA": {
+    "lat": 44.46799,
+    "lng": 19.82035,
+    "river": "TAMNAVA",
+    "hm_id": "45914"
+  },
+  "ĆEMANOV MOST": {
+    "lat": 44.49,
+    "lng": 19.851,
+    "river": "TAMNAVA",
+    "hm_id": "45917"
+  },
+  "UB": {
+    "lat": 44.4562,
+    "lng": 20.07378,
+    "river": "UB",
+    "hm_id": "45916"
+  },
+  "JAŠA TOMIĆ": {
+    "lat": 45.44659,
+    "lng": 20.85645,
+    "river": "TAMIŠ",
+    "hm_id": "42401"
+  },
+  "SEČANJ": {
+    "lat": 45.3866,
+    "lng": 20.76082,
+    "river": "TAMIŠ",
+    "hm_id": "42411"
+  },
+  "VARVARIN": {
+    "lat": 43.72535,
+    "lng": 21.36817,
+    "river": "VELIKA MORAVA",
+    "hm_id": "47010"
+  },
+  "ĆUPRIJA": {
+    "lat": 43.93356,
+    "lng": 21.37124,
+    "river": "RAVANICA",
+    "hm_id": "47029"
+  },
+  "BAGRDAN": {
+    "lat": 44.06787,
+    "lng": 21.17701,
+    "river": "VELIKA MORAVA",
+    "hm_id": "47040"
+  },
+  "LJUBIČEVSKI MOST": {
+    "lat": 44.58514,
+    "lng": 21.13072,
+    "river": "VELIKA MORAVA",
+    "hm_id": "47090"
+  },
+  "PARAĆIN": {
+    "lat": 43.86363,
+    "lng": 21.40996,
+    "river": "CRNICA",
+    "hm_id": "47025"
+  },
+  "MAJUR": {
+    "lat": 44.77082,
+    "lng": 19.65479,
+    "river": "LUGOMIR",
+    "hm_id": "47035"
+  },
+  "JAGODINA": {
+    "lat": 43.97943,
+    "lng": 21.26077,
+    "river": "BELICA",
+    "hm_id": "47038"
+  },
+  "BATOČINA": {
+    "lat": 44.15455,
+    "lng": 21.08013,
+    "river": "LEPENICA",
+    "hm_id": "47057"
+  },
+  "MANASTIR MANASIJA": {
+    "lat": 44.10049,
+    "lng": 21.46894,
+    "river": "RESAVA",
+    "hm_id": "47063"
+  },
+  "SVILAJNAC": {
+    "lat": 44.23331,
+    "lng": 21.19473,
+    "river": "RESAVA",
+    "hm_id": "47067"
+  },
+  "SMEDEREVSKA PALANKA": {
+    "lat": 44.36582,
+    "lng": 20.95798,
+    "river": "KUBRŠNICA",
+    "hm_id": "47076"
+  },
+  "VRANJSKI PRIBOJ": {
+    "lat": 42.61457,
+    "lng": 22.02263,
+    "river": "JUŽNA MORAVA",
+    "hm_id": "47528"
+  },
+  "VLADIČIN HAN": {
+    "lat": 42.70587,
+    "lng": 22.05862,
+    "river": "JUŽNA MORAVA",
+    "hm_id": "47530"
+  },
+  "GRDELICA": {
+    "lat": 42.90054,
+    "lng": 22.07165,
+    "river": "JUŽNA MORAVA",
+    "hm_id": "47540"
+  },
+  "KORVINGRAD": {
+    "lat": 43.32,
+    "lng": 21.829,
+    "river": "JUŽNA MORAVA",
+    "hm_id": "47550"
+  },
+  "ALEKSINAC": {
+    "lat": 43.54052,
+    "lng": 21.70884,
+    "river": "MORAVICA",
+    "hm_id": "47589"
+  },
+  "MOJSINJE": {
+    "lat": 43.88549,
+    "lng": 20.47191,
+    "river": "JUŽNA MORAVA",
+    "hm_id": "47590"
+  },
+  "SVOĐE": {
+    "lat": 42.97732,
+    "lng": 22.26562,
+    "river": "LUŽNICA",
+    "hm_id": "47620"
+  },
+  "VLASOTINCE": {
+    "lat": 42.96523,
+    "lng": 22.12811,
+    "river": "VLASINA",
+    "hm_id": "47640"
+  },
+  "LESKOVAC": {
+    "lat": 42.99513,
+    "lng": 21.94643,
+    "river": "VETERNICA",
+    "hm_id": "47665"
+  },
+  "SIJARINSKA BANJA": {
+    "lat": 42.77573,
+    "lng": 21.60514,
+    "river": "JABLANICA",
+    "hm_id": "47720"
+  },
+  "PEČENJEVCE": {
+    "lat": 43.10265,
+    "lng": 21.92458,
+    "river": "JABLANICA",
+    "hm_id": "47740"
+  },
+  "PUKOVAC": {
+    "lat": 43.1664,
+    "lng": 21.85509,
+    "river": "PUSTA",
+    "hm_id": "47548"
+  },
+  "PEPELJEVAC": {
+    "lat": 43.56478,
+    "lng": 21.25438,
+    "river": "TOPLICA",
+    "hm_id": "47850"
+  },
+  "PROKUPLJE": {
+    "lat": 43.23435,
+    "lng": 21.58844,
+    "river": "TOPLICA",
+    "hm_id": "47880"
+  },
+  "DOLJEVAC": {
+    "lat": 43.19743,
+    "lng": 21.824,
+    "river": "TOPLICA",
+    "hm_id": "47890"
+  },
+  "VISOKA": {
+    "lat": 44.2335,
+    "lng": 19.78253,
+    "river": "KOSANICA",
+    "hm_id": "47855"
+  },
+  "DIMITROVGRAD": {
+    "lat": 43.01574,
+    "lng": 22.7782,
+    "river": "NIŠAVA",
+    "hm_id": "47910"
+  },
+  "PIROT": {
+    "lat": 43.15473,
+    "lng": 22.5865,
+    "river": "NIŠAVA",
+    "hm_id": "47920"
+  },
+  "BELA PALANKA": {
+    "lat": 43.21795,
+    "lng": 22.31127,
+    "river": "NIŠAVA",
+    "hm_id": "47950"
+  },
+  "NIŠ": {
+    "lat": 43.32113,
+    "lng": 21.89592,
+    "river": "NIŠAVA",
+    "hm_id": "47990"
+  },
+  "MRTVINE": {
+    "lat": 43.162,
+    "lng": 22.692,
+    "river": "GABERSKA",
+    "hm_id": "47911"
+  },
+  "STRAZIMIROVCI": {
+    "lat": 42.877,
+    "lng": 22.558,
+    "river": "JERMA",
+    "hm_id": "47912"
+  },
+  "TRNSKI ODOROVCI": {
+    "lat": 42.94202,
+    "lng": 22.61995,
+    "river": "JERMA",
+    "hm_id": "47914"
+  },
+  "STANIČENJE": {
+    "lat": 43.20408,
+    "lng": 22.51013,
+    "river": "TEMSKA",
+    "hm_id": "47945"
+  },
+  "RADIKINA BARA": {
+    "lat": 43.27272,
+    "lng": 22.00573,
+    "river": "KUTINSKA",
+    "hm_id": "47975"
+  },
+  "IZATOVAC": {
+    "lat": 43.08,
+    "lng": 22.53,
+    "river": "VISOČICA",
+    "hm_id": "47939"
+  },
+  "VISOČKA RŽANA": {
+    "lat": 43.15503,
+    "lng": 22.81163,
+    "river": "DOJKINAČKA",
+    "hm_id": "47946"
+  },
+  "ŽUČKOVAC": {
+    "lat": 43.6857,
+    "lng": 21.79889,
+    "river": "MORAVICA",
+    "hm_id": "47580"
+  },
+  "KRATOVSKA STENA": {
+    "lat": 43.87334,
+    "lng": 20.11605,
+    "river": "ZAPADNA MORAVA",
+    "hm_id": "47101"
+  },
+  "ČAČAK": {
+    "lat": 43.89143,
+    "lng": 20.34916,
+    "river": "ZAPADNA MORAVA",
+    "hm_id": "47115"
+  },
+  "MILOČAJ": {
+    "lat": 43.79313,
+    "lng": 20.6256,
+    "river": "ZAPADNA MORAVA",
+    "hm_id": "47120"
+  },
+  "TRSTENIK": {
+    "lat": 43.62021,
+    "lng": 20.99844,
+    "river": "ZAPADNA MORAVA",
+    "hm_id": "47150"
+  },
+  "JASIKA": {
+    "lat": 43.61581,
+    "lng": 21.29872,
+    "river": "ZAPADNA MORAVA",
+    "hm_id": "47195"
+  },
+  "ŠENGOLJ": {
+    "lat": 43.86,
+    "lng": 19.911,
+    "river": "ĐETINJA",
+    "hm_id": "47445"
+  },
+  "POŽEGA": {
+    "lat": 43.15342,
+    "lng": 20.42105,
+    "river": "SKRAPEŽ",
+    "hm_id": "47495"
+  },
+  "ARILJE": {
+    "lat": 43.75055,
+    "lng": 20.10031,
+    "river": "MORAVICA",
+    "hm_id": "47350"
+  },
+  "RADOBUĐA": {
+    "lat": 43.72239,
+    "lng": 20.04067,
+    "river": "VELIKI RZAV",
+    "hm_id": "99108"
+  },
+  "GUČA": {
+    "lat": 43.77729,
+    "lng": 20.22694,
+    "river": "BJELICA",
+    "hm_id": "47105"
+  },
+  "PRIJEVOR": {
+    "lat": 43.90862,
+    "lng": 20.28225,
+    "river": "KAMENICA",
+    "hm_id": "47112"
+  },
+  "GORNJA GOREVNICA": {
+    "lat": 43.95808,
+    "lng": 20.28497,
+    "river": "ČEMERNICA",
+    "hm_id": "99073"
+  },
+  "BRĐANI": {
+    "lat": 43.96887,
+    "lng": 20.41337,
+    "river": "DIČINA",
+    "hm_id": "47121"
+  },
+  "RAŠKA": {
+    "lat": 43.28696,
+    "lng": 20.61413,
+    "river": "RAŠKA",
+    "hm_id": "47269"
+  },
+  "UŠĆE": {
+    "lat": 43.46836,
+    "lng": 20.61503,
+    "river": "STUDENICA",
+    "hm_id": "47288"
+  },
+  "MATARUŠKA BANJA": {
+    "lat": 43.68931,
+    "lng": 20.60937,
+    "river": "IBAR",
+    "hm_id": "47296"
+  },
+  "KRALJEVO": {
+    "lat": 43.72345,
+    "lng": 20.68708,
+    "river": "IBAR",
+    "hm_id": "47299"
+  },
+  "NOVI PAZAR": {
+    "lat": 43.14069,
+    "lng": 20.51806,
+    "river": "RAŠKA",
+    "hm_id": "47265"
+  },
+  "BILJANOVAC": {
+    "lat": 43.40999,
+    "lng": 20.65538,
+    "river": "JOŠANICA",
+    "hm_id": "47278"
+  },
+  "MLANČA": {
+    "lat": 43.5258,
+    "lng": 20.40097,
+    "river": "STUDENICA",
+    "hm_id": "47285"
+  },
+  "BOGUTOVAC": {
+    "lat": 43.65059,
+    "lng": 20.55437,
+    "river": "LOPATNICA",
+    "hm_id": "47294"
+  },
+  "RAVNI": {
+    "lat": 43.72125,
+    "lng": 19.91248,
+    "river": "RASINA",
+    "hm_id": "47168"
+  },
+  "BIVOLJE": {
+    "lat": 43.58792,
+    "lng": 21.34689,
+    "river": "RASINA",
+    "hm_id": "47175"
+  },
+  "BORAČ": {
+    "lat": 43.96061,
+    "lng": 20.6062,
+    "river": "BORAČKA",
+    "hm_id": "47156"
+  },
+  "GORNJAK": {
+    "lat": 44.26577,
+    "lng": 21.54383,
+    "river": "MLAVA",
+    "hm_id": "42520"
+  },
+  "VELIKO SELO": {
+    "lat": 44.81091,
+    "lng": 20.59812,
+    "river": "MLAVA",
+    "hm_id": "42527"
+  },
+  "BRATINAC": {
+    "lat": 44.643,
+    "lng": 21.25278,
+    "river": "MLAVA",
+    "hm_id": "42535"
+  },
+  "KULA": {
+    "lat": 45.61015,
+    "lng": 19.53012,
+    "river": "VITOVNICA",
+    "hm_id": "42540"
+  },
+  "KUSIĆ": {
+    "lat": 44.87744,
+    "lng": 21.48153,
+    "river": "NERA",
+    "hm_id": "42660"
+  },
+  "VRAČEV GAJ": {
+    "lat": 44.87892,
+    "lng": 21.36724,
+    "river": "NERA",
+    "hm_id": "42670"
+  },
+  "MARKOVIĆEVO": {
+    "lat": 45.31856,
+    "lng": 21.03069,
+    "river": "BRZAVA",
+    "hm_id": "42480"
+  },
+  "VATIN": {
+    "lat": 45.23291,
+    "lng": 21.24535,
+    "river": "MORAVICA",
+    "hm_id": "42485"
+  },
+  "KUŠTILJ": {
+    "lat": 45.03445,
+    "lng": 21.37828,
+    "river": "KARAŠ",
+    "hm_id": "42610"
+  },
+  "DOBRIČEVO": {
+    "lat": 44.98995,
+    "lng": 21.3559,
+    "river": "KARAŠ",
+    "hm_id": "42615"
+  },
+  "KUČEVO": {
+    "lat": 44.47822,
+    "lng": 21.6693,
+    "river": "PEK",
+    "hm_id": "42720"
+  },
+  "CRNAJKA": {
+    "lat": 44.28691,
+    "lng": 22.14196,
+    "river": "CRNAJKA",
+    "hm_id": "42760"
+  },
+  "BOGOVINA": {
+    "lat": 43.89362,
+    "lng": 21.94472,
+    "river": "CRNI TIMOK",
+    "hm_id": "42911"
+  },
+  "GAMZIGRAD": {
+    "lat": 43.90902,
+    "lng": 22.17469,
+    "river": "CRNI TIMOK",
+    "hm_id": "42914"
+  },
+  "ZLOT": {
+    "lat": 44.00918,
+    "lng": 21.98535,
+    "river": "ZLOTSKA",
+    "hm_id": "42912"
+  },
+  "KNJAŽEVAC": {
+    "lat": 43.56752,
+    "lng": 22.25565,
+    "river": "BELI TIMOK",
+    "hm_id": "42921"
+  },
+  "ZAJEČAR": {
+    "lat": 43.90309,
+    "lng": 22.27856,
+    "river": "BELI TIMOK",
+    "hm_id": "42929"
+  },
+  "ČOKONJAR": {
+    "lat": 44.02465,
+    "lng": 22.34571,
+    "river": "VELIKI TIMOK",
+    "hm_id": "42901"
+  },
+  "GRLIŠTE": {
+    "lat": 43.8166,
+    "lng": 22.24412,
+    "river": "GRLIŠKA",
+    "hm_id": "42926"
+  },
+  "RGOŠTE": {
+    "lat": 43.54472,
+    "lng": 22.20652,
+    "river": "SVRLJIŠKI TIMOK",
+    "hm_id": "42931"
+  },
+  "DONJA KAMENICA": {
+    "lat": 43.48812,
+    "lng": 22.32715,
+    "river": "TRGOVIŠKI TIMOK",
+    "hm_id": "42935"
+  },
+  "RIBARCE": {
+    "lat": 42.398,
+    "lng": 22.143,
+    "river": "BRANKOVAČKA",
+    "hm_id": "64111"
+  },
+  "BOSILJGRAD": {
+    "lat": 42.496,
+    "lng": 22.476,
+    "river": "LJUBATSKA",
+    "hm_id": "64129"
+  },
+  "BARBACE": {
+    "lat": 42.36944,
+    "lng": 21.95944,
+    "river": "PČINJA",
+    "hm_id": "63410"
+  }
+}

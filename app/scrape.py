@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from dataclasses import dataclass, asdict
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
+
+_COORDS_FILE = Path(__file__).resolve().parent / "rhmss_coords.json"
+_STATION_COORDS: dict[str, dict] = {}
+if _COORDS_FILE.exists():
+    with open(_COORDS_FILE, "r", encoding="utf-8") as _f:
+        _STATION_COORDS = json.load(_f)
 
 INDEX_URL = "https://www.hidmet.gov.rs/eng/hidrologija/izvestajne/index.php"
 BASE_URL = "https://www.hidmet.gov.rs/eng/hidrologija/izvestajne/"
@@ -43,6 +51,8 @@ class StationData:
     name: str
     river: str
     detail_url: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     water_stage_cm: Optional[float] = None
     change_cm: Optional[float] = None
     river_flow: Optional[float] = None
@@ -130,11 +140,14 @@ def _tendency_from_img(td) -> Optional[str]:
 def parse_detail(html: str, entry: StationEntry) -> StationData:
     """Parse a single station detail page and return structured data."""
     soup = BeautifulSoup(html, "html.parser")
+    coords = _STATION_COORDS.get(entry.name, {})
     data = StationData(
         hm_id=entry.hm_id,
         name=entry.name,
         river=entry.river,
         detail_url=entry.detail_url,
+        lat=coords.get("lat"),
+        lng=coords.get("lng"),
     )
 
     # Date line — look for a cell with "Date:" text
@@ -225,11 +238,14 @@ async def fetch_all_stations() -> list[dict]:
                     r.raise_for_status()
                     return parse_detail(r.text, entry)
                 except Exception as exc:
+                    c = _STATION_COORDS.get(entry.name, {})
                     return StationData(
                         hm_id=entry.hm_id,
                         name=entry.name,
                         river=entry.river,
                         detail_url=entry.detail_url,
+                        lat=c.get("lat"),
+                        lng=c.get("lng"),
                         error=str(exc),
                     )
 
@@ -242,3 +258,90 @@ async def fetch_all_stations() -> list[dict]:
     )
 
     return [asdict(s) for s in stations]
+
+
+# ---------------------------------------------------------------------------
+# RHMSS Water Level Forecast
+# ---------------------------------------------------------------------------
+
+FORECAST_URL = "https://www.hidmet.gov.rs/eng/prognoza/prognoza_voda.php"
+
+
+def parse_forecast_table(html: str) -> dict:
+    """Parse the RHMSS water level forecast HTML table."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    table = soup.find("table")
+    if not table:
+        return {"title": "", "columns": [], "rows": [], "error": "No table found"}
+
+    rows = table.find_all("tr")
+    if len(rows) < 6:
+        return {"title": "", "columns": [], "rows": [], "error": "Table too short"}
+
+    title_td = soup.find("td", class_="naslovHeader")
+    title = title_td.get_text(strip=True) if title_td else ""
+
+    date_cells = rows[2].find_all("td")
+    day_names = [c.get_text(strip=True) for c in date_cells if c.get_text(strip=True)]
+
+    date_labels = rows[3].find_all("td")
+    dates = [c.get_text(strip=True) for c in date_labels if c.get_text(strip=True)]
+
+    columns = ["River", "Station"]
+    for i, d in enumerate(dates):
+        label = f"{day_names[i]} {d}" if i < len(day_names) else d
+        if i == 0:
+            label += " (today)"
+        columns.append(label)
+    columns.extend(["1st Alert (cm)", "2nd Alert (cm)"])
+
+    result_rows = []
+    for row in rows[5:]:
+        cells = row.find_all("td")
+        if len(cells) < 7:
+            continue
+
+        texts = []
+        link = None
+        for j, c in enumerate(cells):
+            t = c.get_text(strip=True).replace("\xa0", " ")
+            if j == 1:
+                a = c.find("a", href=True)
+                if a:
+                    link = a["href"]
+                    if not link.startswith("http"):
+                        link = "https://www.hidmet.gov.rs/eng/prognoza/" + link
+            texts.append(t)
+
+        if not any(texts[2:]):
+            continue
+
+        result_rows.append({
+            "river": texts[0] if len(texts) > 0 else "",
+            "station": texts[1] if len(texts) > 1 else "",
+            "values": texts[2:7] if len(texts) >= 7 else texts[2:],
+            "first_alert": texts[7] if len(texts) > 7 else "",
+            "second_alert": texts[8] if len(texts) > 8 else "",
+            "detail_url": link,
+        })
+
+    return {
+        "title": title,
+        "columns": columns,
+        "rows": result_rows,
+        "error": None,
+    }
+
+
+async def fetch_forecast() -> dict:
+    """Fetch and parse the RHMSS water level forecast table."""
+    async with httpx.AsyncClient(
+        headers=HEADERS, timeout=REQUEST_TIMEOUT, follow_redirects=True
+    ) as client:
+        try:
+            resp = await client.get(FORECAST_URL)
+            resp.raise_for_status()
+            return parse_forecast_table(resp.text)
+        except Exception as exc:
+            return {"title": "", "columns": [], "rows": [], "error": str(exc)}
