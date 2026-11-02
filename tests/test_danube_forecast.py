@@ -21,6 +21,10 @@ XML = "<response>" + xml_item() + "</response>"
 
 
 class ParserTests(unittest.TestCase):
+    def test_bulletin_uses_largest_image_even_when_srcset_is_unsorted(self):
+        img = {"src": "small.jpg", "srcset": "large.jpg 768w, medium.jpg 640w, tiny.jpg 400w"}
+        self.assertEqual(scraper._largest_image_source(img), "large.jpg")
+
     def test_zero_and_negative_forecasts_are_preserved(self):
         d = scraper._parse_afdj_xml(XML)
         self.assertEqual(d["rows"][0]["values"], ["0", "0", "-1", "2", "3", "4"])

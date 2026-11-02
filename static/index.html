@@ -1265,7 +1265,7 @@ function renderINHGAForecast(d) {
     const b = d.bulletin;
     inhgaFcEl.innerHTML = `${warning}<div style="padding:1rem;text-align:center">
       <p>INHGA forecast bulletin · ${esc(b.bulletin_date)}</p>
-      <a href="${esc(sourceUrl)}" target="_blank" rel="noopener">
+      <a href="${esc(b.forecast_table_img)}" target="_blank" rel="noopener">
         <img src="${esc(b.forecast_table_img)}" alt="Original INHGA Danube forecast bulletin" style="max-width:100%;height:auto">
       </a></div>${srcLink}`;
     return;

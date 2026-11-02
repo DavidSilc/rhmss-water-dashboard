@@ -240,6 +240,16 @@ def _build_danube_stations(
     return results
 
 
+def _largest_image_source(img) -> str:
+    """WordPress srcset entries are not necessarily ordered by image size."""
+    candidates = []
+    for entry in img.get("srcset", "").split(","):
+        parts = entry.strip().split()
+        if len(parts) == 2 and re.fullmatch(r"\d+w", parts[1]):
+            candidates.append((int(parts[1][:-1]), parts[0]))
+    return max(candidates)[1] if candidates else img["src"]
+
+
 async def _fetch_bulletin_summary(client: httpx.AsyncClient) -> INHGABulletinSummary:
     summary = INHGABulletinSummary()
     try:
@@ -271,9 +281,7 @@ async def _fetch_bulletin_summary(client: httpx.AsyncClient) -> INHGABulletinSum
 
         imgs = content.find_all("img", src=True)
         for img in imgs:
-            srcset = img.get("srcset", "")
-            srcs = [s.strip().split()[0] for s in srcset.split(",") if s.strip()]
-            full_src = srcs[-1] if srcs else img["src"]
+            full_src = _largest_image_source(img)
             if not full_src.startswith("http"):
                 continue
             w = img.get("width", "0")
