@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 import json
+import asyncio
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict
 from datetime import date, timedelta
@@ -406,14 +408,15 @@ def _afdj_forecast(records: list[dict]) -> dict:
     if not records:
         raise ValueError("No station data found in AFDJ response")
     base_date = max(r["observed_date"] for r in records)
-    days = [base_date + timedelta(days=i) for i in range(6)]
+    horizon = max(len(r["forecasts"]) for r in records)
+    days = [base_date + timedelta(days=i) for i in range(horizon + 1)]
     columns = ["Station", "Km"] + [
         f"{d.strftime('%a %d.%m')}{' (observed)' if i == 0 else ''}"
         for i, d in enumerate(days)
     ] + ["1st Alert (cm)", "2nd Alert (cm)"]
     rows = []
     issue_dates = set()
-    for r in sorted(records, key=lambda r: float(r["km"])):
+    for r in sorted(records, key=lambda r: float(r["km"]) if r["km"] else float("inf")):
         forecasts = {
             r["forecast_date"] + timedelta(days=i + 1): v
             for i, v in enumerate(r["forecasts"]) if v != ""
@@ -508,11 +511,49 @@ def _parse_afdj_table(html: str) -> dict:
     return _afdj_forecast(result_rows)
 
 
+_bulletin_forecast_lock = asyncio.Lock()
+_bulletin_forecast_cache: tuple[tuple, float, dict] | None = None
+
+
+async def _fetch_bulletin_forecast(client: httpx.AsyncClient, bulletin: INHGABulletinSummary) -> dict:
+    """Cache numeric extraction for 15 minutes, keyed by the dated source image."""
+    global _bulletin_forecast_cache
+    if not (bulletin.bulletin_url and bulletin.forecast_table_img and bulletin.bulletin_date):
+        raise ValueError("No dated INHGA forecast image is available")
+    key = (bulletin.bulletin_url, bulletin.bulletin_date, bulletin.forecast_table_img)
+    async with _bulletin_forecast_lock:
+        cached = _bulletin_forecast_cache
+        if cached and cached[0] == key and time.monotonic() - cached[1] < 900:
+            return cached[2]
+
+        # WordPress thumbnails discard small digits. Prefer the original upload;
+        # fall back to the advertised image only if the original cannot be read.
+        original = re.sub(r"-\d+x\d+(?=\.[a-zA-Z]+$)", "", bulletin.forecast_table_img)
+        for image_url in dict.fromkeys((original, bulletin.forecast_table_img)):
+            try:
+                response = await client.get(image_url)
+                response.raise_for_status()
+                from .inhga_ocr import parse_bulletin_image
+                records = await asyncio.to_thread(parse_bulletin_image, response.content, bulletin.bulletin_date)
+                data = _afdj_forecast(records)
+                missing = any("" in row["values"] for row in data["rows"])
+                data.update({
+                    "format": "table", "source_url": bulletin.bulletin_url,
+                    "source": "INHGA bulletin", "bulletin_date": bulletin.bulletin_date,
+                    "warning": "Some values could not be read reliably and are left blank." if missing else None,
+                })
+                _bulletin_forecast_cache = (key, time.monotonic(), data)
+                return data
+            except (httpx.HTTPError, ValueError):
+                continue
+    raise ValueError("INHGA forecast numbers could not be read reliably")
+
+
 async def fetch_danube_forecast() -> dict:
     """Use the public XML API when AFDJ's web page rejects server requests.
 
-    If both AFDJ routes fail, expose the original INHGA bulletin rather than
-    inventing station forecasts or returning a raw HTTP exception to the UI.
+    If both AFDJ routes fail, extract dated station water levels from the
+    original INHGA bulletin and return the same structured response.
     """
     async with httpx.AsyncClient(
         headers=HEADERS, timeout=REQUEST_TIMEOUT, follow_redirects=True
@@ -529,12 +570,9 @@ async def fetch_danube_forecast() -> dict:
                 continue
 
         bulletin = await _fetch_bulletin_summary(client)
-        if bulletin.bulletin_url and bulletin.forecast_table_img and bulletin.bulletin_date:
-            return {
-                "columns": [], "rows": [], "error": None, "format": "bulletin",
-                "bulletin": asdict(bulletin), "source_url": bulletin.bulletin_url,
-                "warning": "Station forecasts are temporarily unavailable. "
-                           "Showing the original INHGA forecast bulletin with its publication date.",
-            }
+        try:
+            return await _fetch_bulletin_forecast(client, bulletin)
+        except ValueError:
+            pass
         return {"columns": [], "rows": [], "error":
                 "Romanian forecast sources are temporarily unavailable. Please try again later."}

@@ -80,12 +80,14 @@ class FetchTests(unittest.IsolatedAsyncioTestCase):
         bulletin = scraper.INHGABulletinSummary(
             bulletin_date="02.11.2026", bulletin_url="https://www.hidro.ro/bulletin/test/",
             forecast_table_img="https://www.hidro.ro/forecast.jpg")
-        with patch.object(scraper, "_fetch_bulletin_summary", return_value=bulletin):
+        numeric = {**scraper._parse_afdj_xml(XML), "format": "table", "source": "INHGA bulletin"}
+        with patch.object(scraper, "_fetch_bulletin_summary", return_value=bulletin), \
+             patch.object(scraper, "_fetch_bulletin_forecast", return_value=numeric) as extract:
             d = await self.fetch(lambda request: httpx.Response(403))
         self.assertIsNone(d["error"])
-        self.assertEqual(d["format"], "bulletin")
-        self.assertEqual(d["rows"], [])
-        self.assertEqual(d["bulletin"]["bulletin_date"], "02.11.2026")
+        self.assertEqual(d["format"], "table")
+        self.assertEqual(d["rows"][0]["values"], ["0", "0", "-1", "2", "3", "4"])
+        extract.assert_awaited_once()
 
     async def test_all_sources_unavailable_returns_honest_error(self):
         with patch.object(scraper, "_fetch_bulletin_summary", return_value=scraper.INHGABulletinSummary()):

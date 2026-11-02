@@ -1071,9 +1071,8 @@ async function refresh() {
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
       renderINHGAForecast(json);
-      inhgaFcSt.textContent = json.format === 'bulletin'
-        ? `INHGA bulletin · ${json.bulletin.bulletin_date}`
-        : (json.error ? 'Unavailable' : `${json.rows.length} stations in ${json.elapsed_seconds}s`);
+      inhgaFcSt.textContent = json.error ? 'Unavailable'
+        : `${json.rows.length} stations${json.bulletin_date ? ' · ' + json.bulletin_date : ''} in ${json.elapsed_seconds}s`;
       inhgaForecasts = {};
       const cols = json.columns || [];
       const dayLabels = cols.slice(2, -2).map(c => c.replace(/\s*\(.*\)/, '').split(' ').pop());
@@ -1261,15 +1260,6 @@ function renderINHGAForecast(d) {
     ? `<div role="status" style="padding:1rem;color:var(--muted)">${esc(d.warning)}</div>` : '';
   const sourceUrl = d.source_url || 'https://www.afdj.ro/ro/cotele-dunarii';
   const srcLink = `<div style="text-align:center;margin:.5rem;font-size:.8rem"><a class="ext" href="${esc(sourceUrl)}" target="_blank" rel="noopener">Source: AFDJ / INHGA Danube Forecast</a></div>`;
-  if (d.format === 'bulletin' && d.bulletin) {
-    const b = d.bulletin;
-    inhgaFcEl.innerHTML = `${warning}<div style="padding:1rem;text-align:center">
-      <p>INHGA forecast bulletin · ${esc(b.bulletin_date)}</p>
-      <a href="${esc(b.forecast_table_img)}" target="_blank" rel="noopener">
-        <img src="${esc(b.forecast_table_img)}" alt="Original INHGA Danube forecast bulletin" style="max-width:100%;height:auto">
-      </a></div>${srcLink}`;
-    return;
-  }
   if (!d.rows || !d.rows.length) {
     inhgaFcEl.innerHTML = '<div class="empty-state">No INHGA forecast data available.</div>';
     return;
