@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import re
 import json
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict
+from datetime import date, timedelta
 from typing import Optional
 
 import httpx
@@ -354,6 +356,15 @@ async def fetch_danube_bulletin() -> dict:
 # ---------------------------------------------------------------------------
 
 AFDJ_URL = "https://www.afdj.ro/ro/cotele-dunarii"
+AFDJ_XML_URL = "https://afdj.ro/ro/tabel_cotele_dunarii/xml"
+
+# These stations have blank forecasts in the HTML table, but the XML feed
+# represents their missing forecasts as five zeroes. Other stations can
+# legitimately have a forecast water level of zero centimetres.
+_AFDJ_UNFORECASTED = {
+    "Sulina", "Rast", "Cetate", "Drobeta Turnu Severin", "Orsova",
+    "Drencova", "Moldova Veche", "Bazias",
+}
 
 _ALERT_THRESHOLDS: dict[str, tuple[int, int]] = {
     "Tulcea":            (320, 410),
@@ -373,9 +384,83 @@ _ALERT_THRESHOLDS: dict[str, tuple[int, int]] = {
 }
 
 
+def _afdj_date(value: str) -> date:
+    from datetime import datetime
+
+    try:
+        return date.fromisoformat(value[:10])
+    except ValueError:
+        return datetime.strptime(value, "%d/%m/%Y").date()
+
+
+def _afdj_forecast(records: list[dict]) -> dict:
+    """Align forecasts by their issue date, independently of observation dates."""
+    if not records:
+        raise ValueError("No station data found in AFDJ response")
+    base_date = max(r["observed_date"] for r in records)
+    days = [base_date + timedelta(days=i) for i in range(6)]
+    columns = ["Station", "Km"] + [
+        f"{d.strftime('%a %d.%m')}{' (observed)' if i == 0 else ''}"
+        for i, d in enumerate(days)
+    ] + ["1st Alert (cm)", "2nd Alert (cm)"]
+    rows = []
+    issue_dates = set()
+    for r in sorted(records, key=lambda r: float(r["km"])):
+        forecasts = {
+            r["forecast_date"] + timedelta(days=i + 1): v
+            for i, v in enumerate(r["forecasts"]) if v != ""
+        }
+        if forecasts:
+            issue_dates.add(r["forecast_date"])
+        ca, ci = _ALERT_THRESHOLDS.get(r["station"], (None, None))
+        rows.append({
+            "station": r["station"], "km": r["km"],
+            "level": r["level"], "change": r["change"],
+            "observed_date": r["observed_date"].isoformat(),
+            "forecast_date": r["forecast_date"].isoformat(),
+            "values": [r["level"] if r["observed_date"] == base_date else ""]
+                      + [forecasts.get(d, "") for d in days[1:]],
+            "first_alert": str(ca) if ca else "",
+            "second_alert": str(ci) if ci else "",
+        })
+    if not any(any(r["values"][1:]) for r in rows):
+        raise ValueError("AFDJ response contains no usable future forecasts")
+    warning = None
+    if any(d < base_date for d in issue_dates):
+        warning = (
+            "Some forecasts were issued before the latest observations. "
+            "Values are shown on their actual forecast dates; missing days are blank."
+        )
+    return {"columns": columns, "rows": rows, "error": None,
+            "observation_date": base_date.isoformat(),
+            "forecast_dates": sorted(d.isoformat() for d in issue_dates),
+            "warning": warning}
+
+
+def _parse_afdj_xml(xml: str) -> dict:
+    """Read AFDJ's public Drupal XML feed, including 24–120 hour forecasts."""
+    root = ET.fromstring(xml)
+    records = []
+    for item in root.findall("./item"):
+        def value(field: str) -> str:
+            return (item.findtext(f"{field}/value") or "").strip()
+
+        station = value("field_localitatea") or value("title")
+        forecasts = [value(f"field_tendinta_{hours}h") for hours in (24, 48, 72, 96, 120)]
+        if station in _AFDJ_UNFORECASTED and all(v in ("", "0") for v in forecasts):
+            forecasts = [""] * 5
+        records.append({
+            "station": station, "km": value("field_km"),
+            "level": value("field_cota"), "change": value("field_variatia"),
+            "observed_date": _afdj_date(value("field_field_data_actualiz_cote")),
+            "forecast_date": _afdj_date(value("field_data_actualizare_prognoze")),
+            "forecasts": forecasts,
+        })
+    return _afdj_forecast(records)
+
+
 def _parse_afdj_table(html: str) -> dict:
     """Parse the AFDJ Danube water levels + forecast table."""
-    from datetime import datetime, timedelta
 
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
@@ -385,28 +470,6 @@ def _parse_afdj_table(html: str) -> dict:
     trs = table.find_all("tr")
     if len(trs) < 2:
         return {"columns": [], "rows": [], "error": "AFDJ table too short"}
-
-    first_data = trs[1].find_all("td")
-    update_str = first_data[5].get_text(strip=True) if len(first_data) > 5 else ""
-    try:
-        base_date = datetime.strptime(update_str, "%d/%m/%Y")
-    except (ValueError, TypeError):
-        base_date = datetime.now()
-
-    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    def _day_label(dt: datetime) -> str:
-        return f"{day_names[dt.weekday()]} {dt.strftime('%d.%m')}"
-
-    columns = [
-        "Station", "Km",
-        f"{_day_label(base_date)} (today)",
-        f"{_day_label(base_date + timedelta(days=1))}",
-        f"{_day_label(base_date + timedelta(days=2))}",
-        f"{_day_label(base_date + timedelta(days=3))}",
-        f"{_day_label(base_date + timedelta(days=4))}",
-        f"{_day_label(base_date + timedelta(days=5))}",
-        "1st Alert (cm)", "2nd Alert (cm)",
-    ]
 
     result_rows: list[dict] = []
     for tr in trs[1:]:
@@ -424,29 +487,46 @@ def _parse_afdj_table(html: str) -> dict:
         h96 = raw[9]
         h120 = raw[10]
 
-        ca, ci = _ALERT_THRESHOLDS.get(station, (None, None))
-
         result_rows.append({
             "station": station,
             "km": km,
             "level": level_str,
             "change": change,
-            "values": [level_str, h24, h48, h72, h96, h120],
-            "first_alert": str(ca) if ca else "",
-            "second_alert": str(ci) if ci else "",
+            "observed_date": _afdj_date(raw[5]),
+            "forecast_date": _afdj_date(raw[11]),
+            "forecasts": [h24, h48, h72, h96, h120],
         })
 
-    return {"columns": columns, "rows": result_rows, "error": None}
+    return _afdj_forecast(result_rows)
 
 
 async def fetch_danube_forecast() -> dict:
-    """Fetch structured Danube forecast from AFDJ (sourced from INHGA)."""
+    """Use the public XML API when AFDJ's web page rejects server requests.
+
+    If both AFDJ routes fail, expose the original INHGA bulletin rather than
+    inventing station forecasts or returning a raw HTTP exception to the UI.
+    """
     async with httpx.AsyncClient(
         headers=HEADERS, timeout=REQUEST_TIMEOUT, follow_redirects=True
     ) as client:
-        try:
-            resp = await client.get(AFDJ_URL)
-            resp.raise_for_status()
-            return _parse_afdj_table(resp.text)
-        except Exception as exc:
-            return {"columns": [], "rows": [], "error": str(exc)}
+        for url, parser in ((AFDJ_URL, _parse_afdj_table), (AFDJ_XML_URL, _parse_afdj_xml)):
+            try:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                data = parser(resp.text)
+                if data.get("error") or not data.get("rows"):
+                    continue
+                return {**data, "source_url": url, "format": "table"}
+            except (httpx.HTTPError, ValueError, ET.ParseError):
+                continue
+
+        bulletin = await _fetch_bulletin_summary(client)
+        if bulletin.bulletin_url and bulletin.forecast_table_img and bulletin.bulletin_date:
+            return {
+                "columns": [], "rows": [], "error": None, "format": "bulletin",
+                "bulletin": asdict(bulletin), "source_url": bulletin.bulletin_url,
+                "warning": "Station forecasts are temporarily unavailable. "
+                           "Showing the original INHGA forecast bulletin with its publication date.",
+            }
+        return {"columns": [], "rows": [], "error":
+                "Romanian forecast sources are temporarily unavailable. Please try again later."}
