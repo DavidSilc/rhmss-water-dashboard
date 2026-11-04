@@ -112,6 +112,32 @@ class CacheTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(results[0]["rows"]), 17)
         self.assertEqual(results[0]["format"], "table")
 
+    async def test_unlinked_upload_must_pass_bulletin_date_check(self):
+        self.bulletin.forecast_table_img = None
+        base = "https://www.hidro.ro/wp-content/uploads/2026/11/"
+        def handle(request):
+            if request.url.path == "/":
+                self.assertEqual(request.url.params["after"], "2026-11-02T00:00:00")
+                self.assertEqual(request.url.params["rest_route"], "/wp/v2/media")
+                return httpx.Response(200, json=[
+                    {"source_url": base + name, "media_details": {"width": w, "height": h}}
+                    for name, w, h in [("chart.jpg", 800, 400), ("older.jpg", 900, 1200),
+                                       ("forecast.jpg", 900, 1200)]
+                ])
+            return httpx.Response(200, content=request.url.path.split("/")[-1].encode())
+        def read(content, issue):
+            grid = synthetic_grid()
+            if content == b"older.jpg":
+                grid[0][2] = ("01.11.2026", 1.0)
+            else:
+                self.assertEqual(content, b"forecast.jpg")
+            return inhga_ocr._parse_grid(grid, issue)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            with patch.object(inhga_ocr, "parse_bulletin_image", side_effect=read):
+                data = await scrape_inhga._fetch_bulletin_forecast(client, self.bulletin)
+        self.assertEqual(data["bulletin_date"], "02.11.2026")
+        self.assertEqual(len(data["rows"]), 17)
+
     async def test_new_bulletin_invalidates_cache(self):
         async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, content=b"image"))) as client:
             with patch.object(inhga_ocr, "parse_bulletin_image", return_value=self.records) as parse:

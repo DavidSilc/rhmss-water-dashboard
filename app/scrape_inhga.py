@@ -13,7 +13,7 @@ import asyncio
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 import httpx
@@ -515,21 +515,55 @@ _bulletin_forecast_lock = asyncio.Lock()
 _bulletin_forecast_cache: tuple[tuple, float, dict] | None = None
 
 
+async def _forecast_images(client: httpx.AsyncClient, bulletin: INHGABulletinSummary):
+    seen = set()
+    if bulletin.forecast_table_img:
+        original = re.sub(r"-\d+x\d+(?=\.[a-zA-Z]+$)", "", bulletin.forecast_table_img)
+        for url in dict.fromkeys((original, bulletin.forecast_table_img)):
+            seen.add(url)
+            yield url
+
+    # Some daily bulletins omit the image even though INHGA published the
+    # original as an unattached upload. The OCR header verifies the issue date.
+    day = datetime.strptime(bulletin.bulletin_date, "%d.%m.%Y").date().isoformat()
+    try:
+        response = await client.get(INHGA_HOME, params={
+            "rest_route": "/wp/v2/media", "media_type": "image",
+            "after": day + "T00:00:00", "before": day + "T23:59:59",
+            "_fields": "source_url,media_details", "per_page": 100,
+        })
+        response.raise_for_status()
+        uploads = response.json()
+    except (httpx.HTTPError, ValueError):
+        return
+    if not isinstance(uploads, list):
+        return
+    for item in uploads:
+        if not isinstance(item, dict):
+            continue
+        details, url = item.get("media_details"), item.get("source_url")
+        if not isinstance(details, dict) or not isinstance(url, str):
+            continue
+        width, height = details.get("width"), details.get("height")
+        if (isinstance(width, int) and isinstance(height, int)
+                and 700 <= width <= 4000 and width < height <= 6000
+                and url.startswith(INHGA_HOME + "wp-content/uploads/") and url not in seen):
+            seen.add(url)
+            yield url
+
+
 async def _fetch_bulletin_forecast(client: httpx.AsyncClient, bulletin: INHGABulletinSummary) -> dict:
     """Cache numeric extraction for 15 minutes, keyed by the dated source image."""
     global _bulletin_forecast_cache
-    if not (bulletin.bulletin_url and bulletin.forecast_table_img and bulletin.bulletin_date):
-        raise ValueError("No dated INHGA forecast image is available")
+    if not (bulletin.bulletin_url and bulletin.bulletin_date):
+        raise ValueError("No dated INHGA bulletin is available")
     key = (bulletin.bulletin_url, bulletin.bulletin_date, bulletin.forecast_table_img)
     async with _bulletin_forecast_lock:
         cached = _bulletin_forecast_cache
         if cached and cached[0] == key and time.monotonic() - cached[1] < 900:
             return cached[2]
 
-        # WordPress thumbnails discard small digits. Prefer the original upload;
-        # fall back to the advertised image only if the original cannot be read.
-        original = re.sub(r"-\d+x\d+(?=\.[a-zA-Z]+$)", "", bulletin.forecast_table_img)
-        for image_url in dict.fromkeys((original, bulletin.forecast_table_img)):
+        async for image_url in _forecast_images(client, bulletin):
             try:
                 response = await client.get(image_url)
                 response.raise_for_status()
