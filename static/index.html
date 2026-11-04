@@ -272,6 +272,10 @@
   .forecast-table-wrap tbody tr:hover { background: #edf2f7; }
   .forecast-table-wrap .val-alert1 { background: #feebc8; color: #9c4221; font-weight: 700; }
   .forecast-table-wrap .val-alert2 { background: #fed7d7; color: #9b2c2c; font-weight: 700; }
+  .forecast-trend-up { color: #92400e; }
+  .forecast-trend-down { color: #116047; }
+  .forecast-trend-flat { color: #475569; }
+  .forecast-table-wrap caption { padding: .45rem; text-align: left; font-size: .78rem; }
 
   #hydro-map { height: 520px; border-radius: 8px; border: 1px solid var(--border); }
   .map-legend {
@@ -1251,6 +1255,32 @@ function renderDanubeTable() {
   </table></div>`;
 }
 
+const forecastTrendKey = `<caption>Change from previous day:
+  <span class="forecast-trend-up">↑ Rising</span> ·
+  <span class="forecast-trend-down">↓ Falling</span> ·
+  <span class="forecast-trend-flat">→ Steady</span></caption>`;
+
+function forecastValueCells(row) {
+  const level = value => {
+    const text = String(value ?? '').trim().replace(',', '.').replace('−', '-');
+    return text ? Number(text) : NaN;
+  };
+  const firstAlert = level(row.first_alert);
+  const secondAlert = level(row.second_alert);
+  return row.values.map((value, index) => {
+    const current = level(value);
+    const previous = level(row.values[index - 1]);
+    const alert = current >= secondAlert ? 'val-alert2' : current >= firstAlert ? 'val-alert1' : '';
+    let label = esc(String(value ?? '').trim() || '–');
+    if (Number.isFinite(current) && Number.isFinite(previous)) {
+      const delta = current - previous;
+      const [trend, arrow] = delta > 0 ? ['up', '↑'] : delta < 0 ? ['down', '↓'] : ['flat', '→'];
+      label = `<span class="forecast-trend-${trend}" title="Change: ${delta > 0 ? '+' : ''}${delta} cm">${arrow} ${label}</span>`;
+    }
+    return `<td class="${alert}">${label}</td>`;
+  }).join('');
+}
+
 function renderINHGAForecast(d) {
   if (d.error) {
     inhgaFcEl.innerHTML = `<div class="danube-error">Error: ${esc(d.error)}</div>`;
@@ -1269,16 +1299,7 @@ function renderINHGAForecast(d) {
   const headerCells = cols.map(c => `<th>${esc(c)}</th>`).join('');
 
   const rows = d.rows.map(r => {
-    const a1 = parseFloat(r.first_alert) || Infinity;
-    const a2 = parseFloat(r.second_alert) || Infinity;
-
-    const valCells = r.values.map(v => {
-      const n = parseFloat(v);
-      let cls = '';
-      if (!isNaN(n) && n >= a2) cls = 'val-alert2';
-      else if (!isNaN(n) && n >= a1) cls = 'val-alert1';
-      return `<td class="${cls}">${esc(v || '–')}</td>`;
-    }).join('');
+    const valCells = forecastValueCells(r);
 
     return `<tr>
       <td>${esc(r.station)}</td>
@@ -1290,6 +1311,7 @@ function renderINHGAForecast(d) {
   }).join('');
 
   inhgaFcEl.innerHTML = `${warning}<div class="forecast-table-wrap"><table>
+    ${forecastTrendKey}
     <thead><tr>${headerCells}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>${srcLink}`;
@@ -1309,16 +1331,7 @@ function renderForecastTable(d) {
   const headerCells = cols.map(c => `<th>${esc(c)}</th>`).join('');
 
   const rows = d.rows.map(r => {
-    const a1 = parseFloat(r.first_alert) || Infinity;
-    const a2 = parseFloat(r.second_alert) || Infinity;
-
-    const valCells = r.values.map(v => {
-      const n = parseFloat(v);
-      let cls = '';
-      if (!isNaN(n) && n >= a2) cls = 'val-alert2';
-      else if (!isNaN(n) && n >= a1) cls = 'val-alert1';
-      return `<td class="${cls}">${esc(v || '–')}</td>`;
-    }).join('');
+    const valCells = forecastValueCells(r);
 
     const stationCell = r.detail_url
       ? `<a class="ext" href="${esc(r.detail_url)}" target="_blank" rel="noopener">${esc(r.station)}</a>`
@@ -1336,6 +1349,7 @@ function renderForecastTable(d) {
   const srcLink = '<div style="text-align:center;margin-top:.5rem;font-size:.8rem"><a class="ext" href="https://www.hidmet.gov.rs/eng/prognoza/prognoza_voda.php" target="_blank" rel="noopener">Source: RHMSS Hydrological Forecast</a></div>';
 
   fcEl.innerHTML = `<div class="forecast-table-wrap"><table>
+    ${forecastTrendKey}
     <thead><tr>${headerCells}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>${srcLink}`;
