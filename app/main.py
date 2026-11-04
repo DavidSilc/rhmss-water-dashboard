@@ -11,7 +11,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .scrape import fetch_all_stations, fetch_forecast
-from .scrape_inhga import fetch_danube_bulletin, fetch_danube_forecast
+from .romanian_plants import fetch_romanian_plants
+from .scrape_inhga import fetch_bulletin_forecast, fetch_danube_bulletin, fetch_danube_forecast
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -31,6 +32,11 @@ async def stations():
     data = await fetch_all_stations()
     elapsed = round(time.time() - start, 1)
     return {"elapsed_seconds": elapsed, "count": len(data), "stations": data}
+
+
+@app.get("/api/romanian-plants")
+async def romanian_plants():
+    return await fetch_romanian_plants()
 
 
 _romanian_cache = {}
@@ -65,6 +71,12 @@ async def forecast():
     data = await fetch_forecast()
     elapsed = round(time.time() - start, 1)
     return {"elapsed_seconds": elapsed, **data}
+
+
+@app.get("/api/inhga-bulletin-forecast")
+async def inhga_bulletin_forecast():
+    data = await _romanian_data("stations", fetch_danube_bulletin)
+    return await fetch_bulletin_forecast(data.get("bulletin") or {})
 
 
 @app.get("/api/inhga-forecast")

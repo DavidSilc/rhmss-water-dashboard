@@ -354,6 +354,7 @@
   .pg-summary .pg-metric-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
   .pg-summary .pg-metric-val { font-weight: 700; font-variant-numeric: tabular-nums; }
 </style>
+<link rel="stylesheet" href="/static/romanian-plants.css">
 </head>
 <body>
 
@@ -370,7 +371,7 @@
   <div id="error"></div>
 
   <div class="section-title">
-    Hydropower Plants & Monitoring Stations <span class="src-badge src-rhmss">Interactive Map</span>
+    Power Plants & Monitoring Stations <span class="src-badge src-rhmss">Interactive Map</span>
   </div>
   <div id="hydro-map"></div>
 
@@ -381,6 +382,9 @@
   <div id="plant-groups" class="plant-groups">
     <div class="empty-state" style="grid-column:1/-1;padding:1.5rem">Click <strong>Refresh</strong> to see aggregated trends by power plant group.</div>
   </div>
+
+  <div class="section-title" style="margin-top:2rem">Romanian power plants</div>
+  <div id="ro-plants" class="plant-groups"></div>
 
   <div class="section-title" style="margin-top:2rem;">
     Danube — Romania (INHGA) <span class="src-badge src-inhga">hidro.ro</span>
@@ -408,6 +412,7 @@
   <div id="content" class="empty-state">Click <strong>Refresh</strong> to load station data.</div>
 </main>
 
+<script src="/static/romanian-plants.js"></script>
 <script>
 const refreshBtn = document.getElementById('refreshBtn');
 const statusEl   = document.getElementById('status');
@@ -708,7 +713,9 @@ if (map) {
   legend.onAdd = function () {
     const div = L.DomUtil.create('div', 'map-legend');
     div.innerHTML = '<b>Legend</b><br>' +
-      '<i style="background:#1d4ed8"></i> Hydropower plant<br>' +
+      '<i style="background:#1d4ed8"></i> Serbian hydropower<br>' +
+      '<i style="background:#087d89"></i> Romanian hydropower<br>' +
+      '<i style="background:#7348a3"></i> Nuclear power plant<br>' +
       '<span style="display:inline-block;width:16px;height:3px;background:#1d4ed8;opacity:.5;border-radius:2px;margin-right:.3rem;vertical-align:2px"></span> River (▶ flow)<br>' +
       Object.entries({
         'rising-fast': 'Rising fast', rising: 'Rising', steady: 'Steady',
@@ -1084,10 +1091,12 @@ async function refresh() {
   statusEl.innerHTML = '<span class="spinner"></span>Fetching data…';
   danubeSt.innerHTML = '<span class="spinner"></span>';
 
+  RomanianPlants.refresh();
   const p1 = fetch('/api/stations')
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
       stationData = json.stations;
+      RomanianPlants.render();
       renderTable();
       updateMapStations();
       return json;
@@ -1096,6 +1105,7 @@ async function refresh() {
   const p2 = fetchRomanianData('/api/inhga-danube', 'stations')
     .then(json => {
       danubeData = json;
+      RomanianPlants.render();
       renderDanubeTable();
       updateMapStations();
       danubeSt.textContent = romanianStatus(json, json.stations.length);
@@ -1115,12 +1125,14 @@ async function refresh() {
       const dayLabels = cols.slice(2, -2).map(c => c.replace(/\s*\(.*\)/, '').split(' ').pop());
       (json.rows || []).forEach(r => {
         inhgaForecasts[r.station] = {
+          issued: r.forecast_date || json.bulletin_date,
           values: r.values,
           first_alert: r.first_alert,
           second_alert: r.second_alert,
           labels: dayLabels,
         };
       });
+      RomanianPlants.render();
       updateMapStations();
       return json;
     })
@@ -1496,6 +1508,7 @@ function esc(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+RomanianPlants.init(map);
 </script>
 </body>
 </html>

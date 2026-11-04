@@ -1,0 +1,17 @@
+#ro-plants { grid-template-columns: repeat(auto-fit,minmax(min(290px,100%),1fr)); align-items: start; }
+.ro-card { border-top: 3px solid #087d89; font-size: .84rem; }
+.ro-card#cernavoda { border-top-color: #7348a3; }
+.ro-card h3 { font-size: 1.05rem; margin: 0; }
+.ro-card h4 { font-size: .9rem; margin: .9rem 0 .2rem; }
+.ro-card small { display: block; color: var(--muted); font-size: .75rem; }
+.ro-card p { margin: .45rem 0; line-height: 1.45; }
+.ro-card button { border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--accent); padding: .2rem .55rem; cursor: pointer; }
+.ro-card a { color: var(--accent); }
+.ro-metric { display: grid; grid-template-columns: 1fr auto; gap: .15rem .4rem; align-items: baseline; padding: .4rem 0; border-bottom: 1px solid var(--border); }
+.ro-metric small { grid-column: 1 / -1; }
+.ro-metric em { font-size: .72rem; font-style: normal; }
+.ro-sources { margin-top: .7rem; }
+.ro-days { display: flex; flex-wrap: wrap; gap: .45rem; margin: .35rem 0; }
+.ro-days div { text-align: center; }
+.ro-marker { color: white; background: #087d89; border: 2px solid white; border-radius: 50%; text-align: center; line-height: 20px; box-shadow: 0 1px 4px #556; }
+.ro-marker.ro-nuclear { background: #7348a3; font-size: 16px; }

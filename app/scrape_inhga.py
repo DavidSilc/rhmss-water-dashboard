@@ -583,6 +583,14 @@ async def _fetch_bulletin_forecast(client: httpx.AsyncClient, bulletin: INHGABul
     raise ValueError("INHGA forecast numbers could not be read reliably")
 
 
+async def fetch_bulletin_forecast(summary: dict) -> dict:
+    async with httpx.AsyncClient(headers=HEADERS, timeout=REQUEST_TIMEOUT, follow_redirects=True) as client:
+        try:
+            return await _fetch_bulletin_forecast(client, INHGABulletinSummary(**summary))
+        except (ValueError, httpx.HTTPError):
+            return {"rows": [], "columns": [], "error": "INHGA bulletin forecast unavailable"}
+
+
 async def fetch_danube_forecast() -> dict:
     """Use the public XML API when AFDJ's web page rejects server requests.
 
