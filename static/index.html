@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Hydro Dashboard — RHMSS &amp; INHGA Danube</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/leaflet.css" />
+<script src="/static/vendor/leaflet-1.9.4/leaflet.js"></script>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -528,23 +528,10 @@ function stationIcon(trend) {
   });
 }
 
-const map = L.map('hydro-map').setView([43.9, 21.0], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap',
-  maxZoom: 18,
-}).addTo(map);
-
+const map = window.L ? L.map('hydro-map').setView([43.9, 21.0], 7) : null;
 const plantMarkers = {};
 const stationMarkers = {};
-const connectionLines = [];
-let linesDrawn = false;
-
-PLANTS.forEach(p => {
-  const m = L.marker([p.lat, p.lng], { icon: plantIcon(p.mw), zIndexOffset: 1000 })
-    .bindPopup(`<div class="plant-popup"><h4>⚡ ${p.name}</h4><div class="pp-cap">${p.mw} MW</div><div class="pp-river">${p.river} · ${p.branch} branch</div><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${p.type === 'pumped' ? 'Pumped storage' : 'Conventional'}</div></div>`)
-    .addTo(map);
-  plantMarkers[p.name] = m;
-});
+const connectionLines = new Set();
 
 function ensureStationMarker(name, lat, lng, src) {
   if (lat == null || lng == null) return;
@@ -558,18 +545,17 @@ function ensureStationMarker(name, lat, lng, src) {
 }
 
 function drawConnectionLines() {
-  if (linesDrawn) return;
-  linesDrawn = true;
   Object.entries(PLANT_STATIONS).forEach(([plantName, stNames]) => {
     const plant = PLANTS.find(p => p.name === plantName);
     if (!plant) return;
     stNames.forEach(sn => {
       const sc = stationCoords[sn];
-      if (!sc) return;
-      const line = L.polyline([[plant.lat, plant.lng], [sc.lat, sc.lng]], {
+      const key = plantName + ":" + sn;
+      if (!sc || connectionLines.has(key)) return;
+      L.polyline([[plant.lat, plant.lng], [sc.lat, sc.lng]], {
         color: '#94a3b8', weight: 1.5, opacity: 0.5, dashArray: '4 4',
       }).addTo(map);
-      connectionLines.push(line);
+      connectionLines.add(key);
     });
   });
 }
@@ -674,7 +660,6 @@ function drawRivers() {
     }).addTo(map);
   });
 }
-drawRivers();
 
 function updateRiverFlows() {
   const flowMap = {};
@@ -705,20 +690,37 @@ function updateRiverFlows() {
   });
 }
 
-const legend = L.control({ position: 'bottomright' });
-legend.onAdd = function () {
-  const div = L.DomUtil.create('div', 'map-legend');
-  div.innerHTML = '<b>Legend</b><br>' +
-    '<i style="background:#1d4ed8"></i> Hydropower plant<br>' +
-    '<span style="display:inline-block;width:16px;height:3px;background:#1d4ed8;opacity:.5;border-radius:2px;margin-right:.3rem;vertical-align:2px"></span> River (▶ flow)<br>' +
-    Object.entries({
-      'rising-fast': 'Rising fast', rising: 'Rising', steady: 'Steady',
-      falling: 'Falling', 'falling-fast': 'Falling fast', none: 'No data'
-    }).map(([trend, label]) => `<i style="background:${TREND_COLORS[trend]}"></i> ${label}<br>`).join('') +
-    '<span style="color:#94a3b8;font-size:.7rem">┈┈ station → plant link</span>';
-  return div;
-};
-legend.addTo(map);
+if (map) {
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 18,
+  }).addTo(map);
+
+  PLANTS.forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: plantIcon(p.mw), zIndexOffset: 1000 })
+      .bindPopup(`<div class="plant-popup"><h4>⚡ ${p.name}</h4><div class="pp-cap">${p.mw} MW</div><div class="pp-river">${p.river} · ${p.branch} branch</div><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${p.type === 'pumped' ? 'Pumped storage' : 'Conventional'}</div></div>`)
+      .addTo(map);
+    plantMarkers[p.name] = m;
+  });
+
+  drawRivers();
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function () {
+    const div = L.DomUtil.create('div', 'map-legend');
+    div.innerHTML = '<b>Legend</b><br>' +
+      '<i style="background:#1d4ed8"></i> Hydropower plant<br>' +
+      '<span style="display:inline-block;width:16px;height:3px;background:#1d4ed8;opacity:.5;border-radius:2px;margin-right:.3rem;vertical-align:2px"></span> River (▶ flow)<br>' +
+      Object.entries({
+        'rising-fast': 'Rising fast', rising: 'Rising', steady: 'Steady',
+        falling: 'Falling', 'falling-fast': 'Falling fast', none: 'No data'
+      }).map(([trend, label]) => `<i style="background:${TREND_COLORS[trend]}"></i> ${label}<br>`).join('') +
+      '<span style="color:#94a3b8;font-size:.7rem">┈┈ station → plant link</span>';
+    return div;
+  };
+  legend.addTo(map);
+} else {
+  document.getElementById("hydro-map").textContent = "Map unavailable.";
+}
 
 function sparklineSvg(values, alertFirst, alertSecond) {
   const parsed = values.map((v, i) => ({ i, n: parseFloat(v) })).filter(p => !isNaN(p.n));
@@ -786,6 +788,7 @@ const TREND_LABELS = {
 };
 
 function updateMapStations() {
+  if (!map) return;
   stationData.forEach(s => ensureStationMarker(s.name, s.lat, s.lng, 'RHMSS'));
   if (danubeData && danubeData.stations) {
     danubeData.stations.forEach(s => ensureStationMarker(s.name, s.lat, s.lng, 'INHGA'));
