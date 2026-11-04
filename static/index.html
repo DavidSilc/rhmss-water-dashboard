@@ -21,8 +21,8 @@
     --success: #38a169;
     --alert1: #ed8936;
     --alert2: #e53e3e;
-    --rising: #e53e3e;
-    --falling: #38a169;
+    --rising: #116047;
+    --falling: #b91c1c;
     --steady: #718096;
     --danube: #2563eb;
     --danube-bg: #eff6ff;
@@ -272,8 +272,8 @@
   .forecast-table-wrap tbody tr:hover { background: #edf2f7; }
   .forecast-table-wrap .val-alert1 { background: #feebc8; color: #9c4221; font-weight: 700; }
   .forecast-table-wrap .val-alert2 { background: #fed7d7; color: #9b2c2c; font-weight: 700; }
-  .forecast-trend-up { color: #116047; }
-  .forecast-trend-down { color: #b91c1c; }
+  .forecast-trend-up { color: var(--rising); }
+  .forecast-trend-down { color: var(--falling); }
   .forecast-trend-flat { color: #475569; }
   .forecast-table-wrap caption { padding: .45rem; text-align: left; font-size: .78rem; }
 
@@ -324,8 +324,8 @@
     top: 0; left: 0; right: 0;
     height: 3px;
   }
-  .pg-card.pg-rising::before   { background: linear-gradient(90deg, #f59e0b, #dc2626); }
-  .pg-card.pg-falling::before  { background: linear-gradient(90deg, #059669, #34d399); }
+  .pg-card.pg-rising::before   { background: linear-gradient(90deg, #34d399, var(--rising)); }
+  .pg-card.pg-falling::before  { background: linear-gradient(90deg, #f87171, var(--falling)); }
   .pg-card.pg-steady::before   { background: linear-gradient(90deg, #6b7280, #9ca3af); }
   .pg-card.pg-none::before     { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
   .pg-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .5rem; }
@@ -475,11 +475,11 @@ function plantIcon(mw) {
 }
 
 const TREND_COLORS = {
-  'rising-fast':  '#dc2626',
-  'rising':       '#f59e0b',
+  'rising-fast':  '#116047',
+  'rising':       '#16955e',
   'steady':       '#6b7280',
-  'falling':      '#34d399',
-  'falling-fast': '#059669',
+  'falling':      '#e55252',
+  'falling-fast': '#b91c1c',
   'none':         '#3b82f6',
 };
 
@@ -711,12 +711,10 @@ legend.onAdd = function () {
   div.innerHTML = '<b>Legend</b><br>' +
     '<i style="background:#1d4ed8"></i> Hydropower plant<br>' +
     '<span style="display:inline-block;width:16px;height:3px;background:#1d4ed8;opacity:.5;border-radius:2px;margin-right:.3rem;vertical-align:2px"></span> River (▶ flow)<br>' +
-    '<i style="background:#dc2626"></i> Rising fast<br>' +
-    '<i style="background:#f59e0b"></i> Rising<br>' +
-    '<i style="background:#6b7280"></i> Steady<br>' +
-    '<i style="background:#34d399"></i> Falling<br>' +
-    '<i style="background:#059669"></i> Falling fast<br>' +
-    '<i style="background:#3b82f6"></i> No data<br>' +
+    Object.entries({
+      'rising-fast': 'Rising fast', rising: 'Rising', steady: 'Steady',
+      falling: 'Falling', 'falling-fast': 'Falling fast', none: 'No data'
+    }).map(([trend, label]) => `<i style="background:${TREND_COLORS[trend]}"></i> ${label}<br>`).join('') +
     '<span style="color:#94a3b8;font-size:.7rem">┈┈ station → plant link</span>';
   return div;
 };
