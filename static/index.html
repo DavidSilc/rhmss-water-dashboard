@@ -1040,6 +1040,41 @@ function renderPlantGroups() {
   document.getElementById('pg-status').textContent = `${PLANT_GROUPS.length} groups`;
 }
 
+// Keep the last successful Romanian response across page reloads and server restarts.
+async function fetchRomanianData(path, field) {
+  const key = 'danube-v1:' + path;
+  const usable = data => !data?.error && Array.isArray(data?.[field]) && data[field].length > 0;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (!usable(data)) throw new Error(data.error || 'The source returned no station data.');
+      try {
+        localStorage.setItem(key, JSON.stringify({ saved: data.savedAt || Date.now(), data }));
+      } catch { /* Storage may be disabled. */ }
+      return data;
+    } catch (error) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(key));
+        const age = Date.now() - cached?.saved;
+        if (age >= 0 && age < 24 * 60 * 60 * 1000 && usable(cached.data)) {
+          return { ...cached.data, savedAt: cached.saved };
+        }
+      } catch { /* Ignore unreadable or unavailable storage. */ }
+      if (attempt === 1) throw error;
+    }
+  }
+}
+
+function romanianStatus(data, count) {
+  if (data.savedAt) {
+    return `${count} stations · saved ${new Date(data.savedAt).toLocaleString()} · live update unavailable`;
+  }
+  const date = data.bulletin_date || data.observation_date;
+  return `${count} stations${date ? ' · ' + date : ''} in ${data.elapsed_seconds}s`;
+}
+
 async function refresh() {
   refreshBtn.disabled = true;
   errorEl.innerHTML = '';
@@ -1055,13 +1090,12 @@ async function refresh() {
       return json;
     });
 
-  const p2 = fetch('/api/inhga-danube')
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  const p2 = fetchRomanianData('/api/inhga-danube', 'stations')
     .then(json => {
       danubeData = json;
       renderDanubeTable();
       updateMapStations();
-      danubeSt.textContent = json.elapsed_seconds != null ? `${json.stations.length} stations in ${json.elapsed_seconds}s` : '';
+      danubeSt.textContent = romanianStatus(json, json.stations.length);
       return json;
     })
     .catch(err => {
@@ -1069,12 +1103,10 @@ async function refresh() {
       danubeSt.textContent = '';
     });
 
-  const p4 = fetch('/api/inhga-forecast')
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  const p4 = fetchRomanianData('/api/inhga-forecast', 'rows')
     .then(json => {
       renderINHGAForecast(json);
-      inhgaFcSt.textContent = json.error ? 'Unavailable'
-        : `${json.rows.length} stations${json.bulletin_date ? ' · ' + json.bulletin_date : ''} in ${json.elapsed_seconds}s`;
+      inhgaFcSt.textContent = romanianStatus(json, json.rows.length);
       inhgaForecasts = {};
       const cols = json.columns || [];
       const dayLabels = cols.slice(2, -2).map(c => c.replace(/\s*\(.*\)/, '').split(' ').pop());

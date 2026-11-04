@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 
@@ -32,10 +33,28 @@ async def stations():
     return {"elapsed_seconds": elapsed, "count": len(data), "stations": data}
 
 
+_romanian_cache = {}
+_romanian_locks = {"stations": asyncio.Lock(), "rows": asyncio.Lock()}
+
+
+async def _romanian_data(field, fetch):
+    async with _romanian_locks[field]:
+        cached = _romanian_cache.get(field)
+        if cached and time.monotonic() - cached[0] < 300:
+            return cached[2]
+        data = await fetch()
+        if data.get(field) and not data.get("error"):
+            _romanian_cache[field] = (time.monotonic(), int(time.time() * 1000), data)
+            return data
+        if cached and time.monotonic() - cached[0] < 86400:
+            return {**cached[2], "savedAt": cached[1]}
+        return data
+
+
 @app.get("/api/inhga-danube")
 async def inhga_danube():
     start = time.time()
-    data = await fetch_danube_bulletin()
+    data = await _romanian_data("stations", fetch_danube_bulletin)
     elapsed = round(time.time() - start, 1)
     return {"elapsed_seconds": elapsed, **data}
 
@@ -51,6 +70,6 @@ async def forecast():
 @app.get("/api/inhga-forecast")
 async def inhga_forecast():
     start = time.time()
-    data = await fetch_danube_forecast()
+    data = await _romanian_data("rows", fetch_danube_forecast)
     elapsed = round(time.time() - start, 1)
     return {"elapsed_seconds": elapsed, **data}
