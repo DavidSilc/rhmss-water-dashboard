@@ -172,9 +172,7 @@ const RomanianPlants = (() => {
     if (bulletinPending) return;
     bulletinPending = true;
     try {
-      const response = await fetch('/api/inhga-bulletin-forecast');
-      if (!response.ok) return;
-      const data = await response.json();
+      const data = await fetchRomanianData('/api/inhga-bulletin-forecast', 'rows');
       const r = data.rows?.find(r => normalizeName(r.station) === 'cernavoda');
       if (r?.values.slice(1).some(v => v !== '' && v != null)) {
         bulletinForecast = {issued: r.forecast_date, values: r.values,

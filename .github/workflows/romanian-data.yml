@@ -1,0 +1,52 @@
+name: Refresh Romanian readings
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/romanian-data.yml'
+      - 'scripts/update_romanian_snapshots.py'
+      - 'app/romanian_cache.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: romanian-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/romanian-data
+          path: saved-readings
+      - name: Collect dated readings
+        id: collect
+        continue-on-error: true
+        run: python scripts/update_romanian_snapshots.py saved-readings/static/romanian-data
+      - name: Preserve successful readings
+        working-directory: saved-readings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/romanian-data
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh dated Romanian readings"
+            git push origin HEAD:codex/romanian-data
+          fi
+      - name: Report source failure
+        if: steps.collect.outcome == 'failure'
+        run: exit 1
