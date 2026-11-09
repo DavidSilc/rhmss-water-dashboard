@@ -13,8 +13,15 @@ from app.scrape_inhga import fetch_bulletin_forecast, fetch_danube_bulletin, fet
 
 async def main():
     directory = Path(sys.argv[1])
-    stations, rows = await asyncio.gather(fetch_danube_bulletin(), fetch_danube_forecast())
-    bulletin = await fetch_bulletin_forecast(stations.get("bulletin") or {})
+    results = await asyncio.gather(
+        fetch_danube_bulletin(), fetch_danube_forecast(), return_exceptions=True)
+    stations, rows = (r if isinstance(r, dict) else {} for r in results)
+    try:
+        bulletin = await fetch_bulletin_forecast(stations.get("bulletin") or {})
+    except Exception:
+        bulletin = {}
+    if not usable("rows", rows) and usable("rows", bulletin):
+        rows = bulletin
     updates = 0
     for key, data in (("stations", stations), ("rows", rows), ("bulletin", bulletin)):
         path = directory / f"{key}.json"
