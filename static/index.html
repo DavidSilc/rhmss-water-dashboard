@@ -51,6 +51,10 @@
 
   header h1 { font-size: 1.25rem; font-weight: 600; }
 
+  .main-sources { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .85rem; font-size: .78rem; color: var(--muted); }
+  .main-sources a { color: var(--accent); text-underline-offset: 3px; }
+  .main-sources a:hover { color: var(--accent-hover); }
+
   .controls { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 
   #status { font-size: .85rem; color: var(--muted); }
@@ -365,6 +369,16 @@
     <span id="status"></span>
     <button id="refreshBtn" onclick="refresh()">Refresh</button>
   </div>
+  <nav class="main-sources" aria-label="Main data sources">
+    <strong>Main sources</strong>
+    <a href="https://www.hidmet.gov.rs/eng/hidrologija/izvestajne/index.php" target="_blank" rel="noopener" title="Serbian water levels, river flows and forecasts">RHMSS</a>
+    <a href="https://www.hidro.ro/" target="_blank" rel="noopener" title="Romanian water levels and Danube bulletins">INHGA</a>
+    <a href="https://www.afdj.ro/ro/cotele-dunarii" target="_blank" rel="noopener" title="Danube water levels and forecasts">AFDJ</a>
+    <a href="https://energy-charts.info/charts/power/chart.htm?l=en&amp;c=RO&amp;source=nuclear_unit" target="_blank" rel="noopener" title="Electricity generation reported by ENTSO-E">Energy-Charts / ENTSO-E</a>
+    <a href="https://www.powergrid.ro/" target="_blank" rel="noopener" title="Romanian generation and unit outage notices">PowerGrid</a>
+    <a href="https://nuclearelectrica.ro/ir/en/reports/current-reports/" target="_blank" rel="noopener" title="Official Cernavodă operator reports">Nuclearelectrica</a>
+    <a href="https://cdn.hidroelectrica.ro/cdn/aga/2025/29_aprilie_2025/raport_anual/H2O_RO_Raport_FY-2024_merged.pdf" target="_blank" rel="noopener" title="Official installed hydroelectric capacities · annual report 2024">Hidroelectrica</a>
+  </nav>
 </header>
 
 <main>
