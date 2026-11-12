@@ -1,4 +1,7 @@
 #ro-plants { grid-template-columns: repeat(auto-fit,minmax(min(290px,100%),1fr)); align-items: start; }
+#rs-plants { grid-template-columns: repeat(auto-fit,minmax(min(290px,100%),1fr)); align-items: start; }
+.ro-card.rs-card { border-top-color: #1d4ed8; }
+.rs-intro { color: var(--muted); font-size: .8rem; margin: -.25rem 0 .8rem; }
 .ro-card { border-top: 3px solid #087d89; font-size: .84rem; }
 .ro-card#cernavoda { border-top-color: #7348a3; }
 .ro-card h3 { font-size: 1.05rem; margin: 0; }

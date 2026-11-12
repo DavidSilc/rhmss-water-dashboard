@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .scrape import fetch_all_stations, fetch_forecast
 from .romanian_plants import fetch_romanian_plants
+from .serbian_plants import fetch_serbian_plants
 from .romanian_cache import romanian_cache
 from .scrape_inhga import fetch_bulletin_forecast, fetch_danube_bulletin, fetch_danube_forecast
 
@@ -38,6 +39,11 @@ async def stations():
 @app.get("/api/romanian-plants")
 async def romanian_plants():
     return await fetch_romanian_plants()
+
+
+@app.get("/api/serbian-plants")
+async def serbian_plants():
+    return await fetch_serbian_plants()
 
 
 async def _romanian_data(field, fetch):

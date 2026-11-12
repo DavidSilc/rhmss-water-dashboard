@@ -182,5 +182,6 @@ const RomanianPlants = (() => {
     } catch { /* Keep the dated AFDJ forecast if the bulletin is unavailable. */ }
     finally { bulletinPending = false; }
   }
-  return {init, render, refresh() { hydrologyRequested = true; loadBulletin(); return loadEnergy(); }};
+  return {init, render, ui: {node, link, metric, level, flow, value},
+    refresh() { hydrologyRequested = true; loadBulletin(); return loadEnergy(); }};
 })();

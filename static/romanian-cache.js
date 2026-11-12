@@ -75,6 +75,7 @@ function displayRomanianStations(json) {
   renderDanubeTable();
   updateMapStations();
   RomanianPlants.render();
+  SerbianPlants.render();
   danubeSt.textContent = romanianStatus(json, json.stations.length);
   return json;
 }
@@ -90,6 +91,7 @@ function displayRomanianForecast(json) {
     };
   });
   RomanianPlants.render();
+  SerbianPlants.render();
   updateMapStations();
   return json;
 }
