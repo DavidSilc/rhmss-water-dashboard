@@ -407,7 +407,7 @@
   <div id="forecast-content" class="empty-state" style="padding:1rem">Loads with Refresh.</div>
 
   <div class="section-title" style="margin-top:2rem;">
-    All Serbian Stations (RHMSS) <span class="src-badge src-rhmss">hidmet.gov.rs</span>
+    Relevant Serbian Stations (RHMSS) <span class="src-badge src-rhmss">hidmet.gov.rs</span>
   </div>
   <div id="content" class="empty-state">Click <strong>Refresh</strong> to load station data.</div>
 </main>
@@ -627,6 +627,18 @@ const RIVERS = [
     flowStations: ['KRATOVSKA STENA','ČAČAK'],
   },
 ];
+
+// Keep the stations used by plant cards and river popups, plus the downstream
+// Iron Gates gauge and the main Tisa / Velika Morava inflow gauges.
+const RELEVANT_SERBIAN_STATIONS = new Set([
+  ...Object.values(PLANT_STATIONS).flat(),
+  ...RIVERS.flatMap(river => river.flowStations),
+  'PRAHOVO', 'SENTA', 'LJUBIČEVSKI MOST',
+].map(normalizeName));
+
+function isRelevantSerbianStation(name) {
+  return RELEVANT_SERBIAN_STATIONS.has(normalizeName(name || ''));
+}
 
 function drawRivers() {
   RIVERS.forEach(river => {
@@ -1061,11 +1073,11 @@ async function refresh() {
   const p1 = fetch('/api/stations')
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
-      stationData = json.stations;
+      stationData = json.stations.filter(s => isRelevantSerbianStation(s.name));
       RomanianPlants.render();
       renderTable();
       updateMapStations();
-      return json;
+      return { ...json, count: stationData.length };
     });
 
   const p2 = refreshRomanianPanels();
@@ -1073,6 +1085,7 @@ async function refresh() {
   const p3 = fetch('/api/forecast')
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
+      json = { ...json, rows: (json.rows || []).filter(r => isRelevantSerbianStation(r.station)) };
       renderForecastTable(json);
       fcSt.textContent = json.elapsed_seconds != null ? `${json.rows.length} stations in ${json.elapsed_seconds}s` : '';
       rhmssForecasts = {};
